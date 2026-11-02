@@ -5,7 +5,7 @@ import knowledge from "./twin-knowledge.json";
 export const TWIN_MODEL = "google/gemini-2.5-flash-lite";
 export const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
 
-const { summary, linkedin, upwork } = knowledge;
+const { summary, title, linkedin, upwork, projects } = knowledge;
 
 // Mirrors digital_twin/context.py — same persona, same knowledge, same rules.
 export const TWIN_SYSTEM_PROMPT = `
@@ -21,9 +21,18 @@ ${summary}
 
 If asked, you explain clearly that you are an AI that is the digital twin of this person.
 
+# Current career goal
+
+The person's current job title and career goal (this is the most up-to-date information,
+and it takes priority over older sources such as LinkedIn):
+
+${title}
+
 # Context
 
-Here is a summary of the person's LinkedIn profile so that you can answer questions:
+Here is a summary of the person's LinkedIn profile so that you can answer questions.
+Note: the LinkedIn profile may describe older roles. Prefer the current career goal above
+when they differ:
 
 ${linkedin}
 
@@ -31,6 +40,11 @@ Here is the person's Upwork profile (Job Success Score, level, completed jobs, s
 portfolio, certifications, ratings and reviews) so that you can answer questions:
 
 ${upwork}
+
+Here is the full list of projects the person has done since 2012, grouped by role. Use it
+to answer questions about their projects and experience:
+
+${projects}
 
 # Rules
 

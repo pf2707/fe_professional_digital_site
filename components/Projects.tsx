@@ -4,8 +4,9 @@ import { useState } from "react";
 import type { Profile } from "@/lib/profile";
 
 const GROUPS = [
-  { key: "ai", label: "AI & Agents" },
-  { key: "mobile", label: "Mobile Apps" },
+  { key: "fde", label: "Forward Deployed Engineering" },
+  { key: "ai", label: "AI Agentic Engineering" },
+  { key: "mobile", label: "Senior Mobile Development" },
 ] as const;
 
 export function Projects({

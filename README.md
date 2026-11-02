@@ -6,7 +6,7 @@ questions about his career, skills, and experience.
 
 The twin's intelligence is integrated from the sibling `digital_twin` project:
 - Same model: **`google/gemini-2.5-flash-lite`** via **OpenRouter**
-- Same knowledge base: summary + LinkedIn + Upwork (see `lib/twin-knowledge.json`)
+- Same knowledge base: summary + title + LinkedIn + Upwork + projects (see `lib/twin-knowledge.json`)
 - Same persona & rules (including rate confidentiality) — see `lib/twin.ts`
 
 Features:
@@ -31,7 +31,8 @@ cp .env.local.example .env.local   # then edit it
 ## Refresh the twin's knowledge
 
 The twin reads from `lib/twin-knowledge.json`. When you update the source files in the
-`digital_twin` project (`summary.txt`, `db/linkedin.pdf`, `db/upwork.md`), regenerate it:
+`digital_twin` project (`summary.txt`, `db/title.md`, `db/linkedin.pdf`, `db/upwork.md`,
+`db/projects.md`), regenerate it:
 
 ```bash
 cd ../digital_twin && .venv/bin/python -c "
@@ -41,8 +42,10 @@ r = PdfReader('db/linkedin.pdf')
 linkedin = ''.join((p.extract_text() or '') + '\n' for p in r.pages)
 out = {
   'summary': open('summary.txt', encoding='utf-8').read().strip(),
+  'title': open('db/title.md', encoding='utf-8').read().strip(),
   'linkedin': linkedin.strip(),
   'upwork': open('db/upwork.md', encoding='utf-8').read().strip(),
+  'projects': open('db/projects.md', encoding='utf-8').read().strip(),
 }
 json.dump(out, open('../fe_digital_website/lib/twin-knowledge.json','w',encoding='utf-8'), ensure_ascii=False, indent=2)
 print('updated knowledge')

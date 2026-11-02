@@ -9,7 +9,7 @@ type Message = { role: "user" | "assistant"; content: string };
 
 const SUGGESTIONS = [
   "What's your experience with Flutter vs native iOS?",
-  "Tell me about your AI agent work",
+  "Tell me about your forward deployed projects",
   "Are you available for new projects?",
 ];
 
