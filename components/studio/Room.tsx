@@ -11,7 +11,7 @@ import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import { Billboard, Float, Html, RoundedBox, Sparkles, useCursor, useTexture } from "@react-three/drei";
 import * as THREE from "three";
 import { profile } from "@/lib/profile";
-import { HOTSPOTS, type HotspotId } from "./hotspots";
+import { HOTSPOTS, MOTTO, type HotspotId } from "./hotspots";
 import {
   drawCertificate,
   drawCorkboard,
@@ -52,11 +52,13 @@ function Hotspot({
   id,
   room,
   labelAt,
+  pivot = [0, 0, 0],
   children,
 }: {
   id: HotspotId;
   room: RoomProps;
   labelAt: [number, number, number];
+  pivot?: [number, number, number]; // the hover lift scales around this point
   children: ReactNode;
 }) {
   const ref = useRef<THREE.Group>(null);
@@ -70,11 +72,12 @@ function Hotspot({
     g.scale.setScalar(s);
   });
 
-  const hint = HOTSPOTS.find((h) => h.id === id)!.hint;
+  const hint = id === "motto" ? MOTTO.hint : HOTSPOTS.find((h) => h.id === id)!.hint;
 
   return (
     <group
       ref={ref}
+      position={pivot}
       onPointerOver={(e: ThreeEvent<PointerEvent>) => {
         e.stopPropagation();
         room.setHovered(id);
@@ -85,9 +88,9 @@ function Hotspot({
         room.onSelect(id);
       }}
     >
-      {children}
+      <group position={[-pivot[0], -pivot[1], -pivot[2]]}>{children}</group>
       {isHover && (
-        <Html position={labelAt} center zIndexRange={[20, 0]} style={{ pointerEvents: "none" }}>
+        <Html position={[labelAt[0] - pivot[0], labelAt[1] - pivot[1], labelAt[2] - pivot[2]]} center zIndexRange={[20, 0]} style={{ pointerEvents: "none" }}>
           <div className="scene-label">{hint}</div>
         </Html>
       )}
@@ -348,8 +351,14 @@ function Certificate({ cert, z }: { cert: (typeof profile.certificates)[number];
   );
 }
 
+const NEON_TEXT = [
+  "LLMs generate plausible content.",
+  "As an AI engineer, I make sure it's accurate",
+  "and take responsibility for the product.",
+].join("\n");
+
 function CertWall({ room }: { room: RoomProps }) {
-  const neon = useCanvasTexture(drawNeon("build · deploy · repeat", C.teal), 1024, 160, []);
+  const neon = useCanvasTexture(drawNeon(NEON_TEXT, C.teal), 1680, 440, []);
   return (
     <>
       <Hotspot id="certs" room={room} labelAt={[-3.6, 3.2, -0.6]}>
@@ -357,16 +366,13 @@ function CertWall({ room }: { room: RoomProps }) {
           <Certificate key={c.title} cert={c} z={0.6 - i * 1.25} />
         ))}
       </Hotspot>
-      <mesh position={[-3.96, 3.62, -0.65]} rotation={[0, Math.PI / 2, 0]}>
-        <planeGeometry args={[3.0, 0.47]} />
-        <meshBasicMaterial
-          map={neon}
-          transparent
-          toneMapped={false}
-          color={room.night ? [2.4, 2.4, 2.4] : [1, 1, 1]}
-          depthWrite={false}
-        />
-      </mesh>
+      <Hotspot id="motto" room={room} labelAt={[-3.6, 3.0, -0.65]} pivot={MOTTO.center}>
+        <mesh position={MOTTO.center} rotation={[0, Math.PI / 2, 0]}>
+          <planeGeometry args={MOTTO.size} />
+          {/* Kept at or below 1 so bloom doesn't smear the letters. */}
+          <meshBasicMaterial map={neon} transparent toneMapped={false} depthWrite={false} />
+        </mesh>
+      </Hotspot>
     </>
   );
 }
@@ -432,16 +438,118 @@ function Cabinet({ room }: { room: RoomProps }) {
       {DRAWERS.map((label, i) => (
         <Drawer key={label} index={i} label={label} pull={i === 0 ? (open ? 0.62 : peek ? 0.12 : 0) : 0} />
       ))}
-      {/* a little dust over the archive */}
-      {!room.calm && <Sparkles count={14} scale={[1.2, 1.2, 1.2]} position={[-3.2, 2.5, -3.0]} size={2} speed={0.2} color="#f6e6c4" opacity={0.6} />}
+      {/* a little dust over the archive (not clickable, so it can't cover the phone) */}
+      {!room.calm && <Sparkles raycast={() => null} count={14} scale={[1.2, 1.2, 1.2]} position={[-3.2, 2.5, -3.0]} size={2} speed={0.2} color="#f6e6c4" opacity={0.6} />}
       {/* old phones resting on top: the mobile era */}
-      <RoundedBox args={[0.2, 0.02, 0.4]} radius={0.01} position={[-3.4, 2.05, -3.15]} rotation={[0, 0.3, 0]}>
-        <meshStandardMaterial color="#1c1f27" roughness={0.3} metalness={0.5} />
-      </RoundedBox>
-      <RoundedBox args={[0.2, 0.02, 0.4]} radius={0.01} position={[-3.0, 2.07, -3.25]} rotation={[0, -0.2, 0]}>
+      <RoundedBox args={[0.2, 0.02, 0.4]} radius={0.01} position={[-2.8, 2.05, -3.42]} rotation={[0, -0.2, 0]}>
         <meshStandardMaterial color="#d8d8dc" roughness={0.3} metalness={0.5} />
       </RoundedBox>
     </Hotspot>
+  );
+}
+
+// ── Telephone on the cabinet: click to call ─────────────────────────────────
+// Not a CV section, so it isn't a <Hotspot>: it has no panel or dock entry,
+// it just dials. The About panel has the same number as a link.
+function Telephone({ room }: { room: RoomProps }) {
+  const body = useRef<THREE.Group>(null);
+  const handset = useRef<THREE.Group>(null);
+  const waves = useRef<THREE.Mesh[]>([]);
+  const [hover, setHover] = useState(false);
+  useCursor(hover);
+
+  useFrame(({ clock }, dt) => {
+    const t = clock.elapsedTime;
+    const ringing = hover && !room.calm;
+    // Old-phone ring: bursts of rattling with short pauses in between.
+    const burst = ringing && t % 1.2 < 0.8;
+    if (body.current) {
+      body.current.rotation.y = burst ? Math.sin(t * 50) * 0.06 : 0;
+      body.current.position.y = burst ? Math.abs(Math.sin(t * 50)) * 0.006 : 0;
+    }
+    const h = handset.current;
+    if (h) {
+      // The handset jumps in its cradle while ringing and lifts on hover.
+      const hop = burst ? Math.abs(Math.sin(t * 25)) * 0.035 : 0;
+      h.position.y = THREE.MathUtils.damp(h.position.y, hover ? 0.2 + hop : 0.155, 18, dt);
+      h.rotation.z = burst ? Math.sin(t * 38) * 0.14 : THREE.MathUtils.damp(h.rotation.z, 0, 10, dt);
+      h.rotation.x = burst ? Math.sin(t * 31) * 0.06 : THREE.MathUtils.damp(h.rotation.x, 0, 10, dt);
+    }
+    // Rings of sound spreading out from the phone.
+    waves.current.forEach((m, k) => {
+      const p = (t * 0.9 + k / 3) % 1;
+      m.scale.setScalar(0.6 + p * 2.2);
+      (m.material as THREE.MeshBasicMaterial).opacity = ringing ? (1 - p) * 0.75 : 0;
+    });
+  });
+
+  const red = "#c2412d";
+  return (
+    <group
+      position={[-3.3, 2.04, -3.0]}
+      rotation={[0, 0.55, 0]}
+      scale={1.7}
+      onPointerOver={(e: ThreeEvent<PointerEvent>) => {
+        e.stopPropagation();
+        setHover(true);
+        room.setHovered(null);
+      }}
+      onPointerOut={() => setHover(false)}
+      onClick={(e: ThreeEvent<MouseEvent>) => {
+        e.stopPropagation();
+        window.location.href = `tel:${profile.phone.replace(/[^\d+]/g, "")}`;
+      }}
+    >
+      <group ref={body}>
+        <RoundedBox args={[0.36, 0.11, 0.28]} radius={0.03} position={[0, 0.055, 0]} castShadow>
+          <meshStandardMaterial color={red} roughness={0.35} />
+        </RoundedBox>
+        {/* rotary dial on the sloped front */}
+        <group position={[0, 0.1, 0.09]} rotation={[0.5, 0, 0]}>
+          <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.075, 0.075, 0.012, 28]} />
+            <meshStandardMaterial color="#f1e6d0" roughness={0.4} />
+          </mesh>
+          <mesh position={[0, 0, 0.008]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.025, 0.025, 0.01, 20]} />
+            <meshStandardMaterial color={red} roughness={0.35} />
+          </mesh>
+        </group>
+        {/* cradle prongs */}
+        {[-0.12, 0.12].map((x) => (
+          <Box key={x} size={[0.04, 0.05, 0.05]} position={[x, 0.125, -0.05]} color={red} rough={0.35} />
+        ))}
+        {/* handset */}
+        <group ref={handset} position={[0, 0.155, -0.05]}>
+          <Box size={[0.3, 0.035, 0.06]} position={[0, 0.01, 0]} color={red} rough={0.35} />
+          {[-0.15, 0.15].map((x) => (
+            <mesh key={x} position={[x, -0.01, 0]} castShadow>
+              <cylinderGeometry args={[0.042, 0.035, 0.05, 20]} />
+              <meshStandardMaterial color={red} roughness={0.35} />
+            </mesh>
+          ))}
+        </group>
+      </group>
+      {[0, 1, 2].map((k) => (
+        <mesh
+          key={k}
+          ref={(m) => {
+            if (m) waves.current[k] = m;
+          }}
+          position={[0, 0.03, 0]}
+          rotation={[-Math.PI / 2, 0, 0]}
+          raycast={() => null}
+        >
+          <ringGeometry args={[0.2, 0.215, 48]} />
+          <meshBasicMaterial color={C.amber} transparent opacity={0} toneMapped={false} depthWrite={false} />
+        </mesh>
+      ))}
+      {hover && (
+        <Html position={[0, 0.85, 0]} center zIndexRange={[20, 0]} style={{ pointerEvents: "none" }}>
+          <div className="scene-label">Call me · {profile.phone}</div>
+        </Html>
+      )}
+    </group>
   );
 }
 
@@ -678,6 +786,7 @@ export function Room(props: RoomProps) {
       <CertWall room={props} />
       <Corkboard room={props} />
       <Cabinet room={props} />
+      {profile.phone && <Telephone room={props} />}
       <ReadingCorner room={props} />
       <Hologram room={props} />
       <Plant />

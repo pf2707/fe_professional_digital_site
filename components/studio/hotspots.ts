@@ -11,7 +11,8 @@ export type HotspotId =
   | "career"
   | "archive"
   | "about"
-  | "twin";
+  | "twin"
+  | "motto";
 
 export type Vec3 = [number, number, number];
 
@@ -74,6 +75,14 @@ export const HOTSPOTS: Hotspot[] = [
     target: [-1.6, 1.5, 1.0],
   },
 ];
+
+// The neon sign over the certificates. Clicking it flies in to read it; it has
+// no panel and isn't in the dock. The camera frames `width` metres of wall.
+export const MOTTO = {
+  hint: "The sign — click to read it",
+  center: [-3.96, 3.62, -0.65] as Vec3,
+  size: [4.2, 1.1] as [number, number],
+};
 
 // Overview: the isometric-ish establishing shot of the whole room.
 export const HOME_VIEW = {

@@ -277,17 +277,29 @@ export function drawCorkboard(
 // ── Neon sign ───────────────────────────────────────────────────────────────
 export function drawNeon(text: string, color: string): Draw {
   return (ctx, w, h) => {
-    ctx.font = `800 ${Math.round(h * 0.6)}px ${cssFont("--font-display")}`;
+    // One tube per line ("\n"); the font shrinks until the widest line fits.
+    const lines = text.split("\n");
+    const family = cssFont("--font-display");
+    let size = Math.round(h / (lines.length * 1.18));
+    ctx.font = `700 ${size}px ${family}`;
+    const widest = Math.max(...lines.map((l) => ctx.measureText(l).width));
+    if (widest > w - 60) size = Math.floor((size * (w - 60)) / widest);
+    ctx.font = `700 ${size}px ${family}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
+    const lead = size * 1.18;
+    const top = h / 2 - (lead * (lines.length - 1)) / 2;
+    const pass = (alpha: number, blur: number, fill: string) => {
+      ctx.globalAlpha = alpha;
+      ctx.shadowBlur = blur;
+      ctx.fillStyle = fill;
+      lines.forEach((l, i) => ctx.fillText(l, w / 2, top + i * lead));
+    };
+    // A tight halo, then a solid pale core on top so the letters stay crisp.
     ctx.shadowColor = color;
-    ctx.shadowBlur = 30;
-    ctx.fillStyle = color;
-    ctx.fillText(text, w / 2, h / 2);
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = "#ffffff";
-    ctx.globalAlpha = 0.7;
-    ctx.fillText(text, w / 2, h / 2);
+    pass(0.9, size * 0.16, color);
+    pass(1, 0, "#e9fffb");
+    ctx.globalAlpha = 1;
   };
 }
 

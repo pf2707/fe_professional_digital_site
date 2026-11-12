@@ -13,6 +13,7 @@ export const profile = {
   available: true,
   location: "Ho Chi Minh City, Vietnam",
   email: "pf2707@gmail.com",
+  phone: "+84 77 303 6794", // shown on the telephone in the studio; "" hides the phone
   languages: "EN / VI / 中文",
 
   stats: [

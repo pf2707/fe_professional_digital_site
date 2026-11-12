@@ -155,6 +155,11 @@ function About() {
         <a className="btn-solid" href={`mailto:${profile.email}`}>
           Email {profile.email}
         </a>
+        {profile.phone && (
+          <a className="btn-ghost" href={`tel:${profile.phone.replace(/[^\d+]/g, "")}`}>
+            Call {profile.phone}
+          </a>
+        )}
         <div className="socials-row">
           {profile.socials
             .filter((s) => s.title !== "Email")
@@ -169,7 +174,9 @@ function About() {
   );
 }
 
-const CONTENT: Record<Exclude<HotspotId, "twin">, () => React.JSX.Element> = {
+type PanelId = Exclude<HotspotId, "twin" | "motto">;
+
+const CONTENT: Record<PanelId, () => React.JSX.Element> = {
   work: Work,
   stack: Stack,
   certs: Certs,
@@ -188,7 +195,7 @@ export function Panel({
   onSelect: (id: HotspotId) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const open = active !== null && active !== "twin";
+  const open = active !== null && active !== "twin" && active !== "motto";
 
   useEffect(() => {
     if (!open) return;
@@ -201,7 +208,7 @@ export function Panel({
   const index = HOTSPOTS.findIndex((h) => h.id === active);
   const prev = HOTSPOTS[(index - 1 + HOTSPOTS.length) % HOTSPOTS.length];
   const next = HOTSPOTS[(index + 1) % HOTSPOTS.length];
-  const Body = open ? CONTENT[active as Exclude<HotspotId, "twin">] : null;
+  const Body = open ? CONTENT[active as PanelId] : null;
 
   return (
     <aside className={`panel ${open ? "open" : ""}`} aria-hidden={!open} aria-label="Section details">
