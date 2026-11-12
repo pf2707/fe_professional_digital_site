@@ -13,8 +13,23 @@ const SUGGESTIONS = [
   "Are you available for new projects?",
 ];
 
-export function DigitalTwin() {
-  const [open, setOpen] = useState(false);
+export function DigitalTwin({
+  open: openProp,
+  onOpenChange,
+  launcher = true,
+}: {
+  // Pass `open` + `onOpenChange` to control the panel from outside (the 3D studio).
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  launcher?: boolean;
+} = {}) {
+  const [openState, setOpenState] = useState(false);
+  const open = openProp ?? openState;
+  const setOpen = (next: boolean | ((o: boolean) => boolean)) => {
+    const value = typeof next === "function" ? next(open) : next;
+    if (onOpenChange) onOpenChange(value);
+    else setOpenState(value);
+  };
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
@@ -36,7 +51,8 @@ export function DigitalTwin() {
     };
     document.addEventListener("click", handler);
     return () => document.removeEventListener("click", handler);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onOpenChange]);
 
   useEffect(() => {
     bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight });
@@ -101,14 +117,16 @@ export function DigitalTwin() {
 
   return (
     <>
-      <button
-        type="button"
-        className="chat-fab"
-        onClick={() => setOpen((o) => !o)}
-        aria-label="Open the digital twin chat"
-      >
-        <span className="pulse" /> Ask my Digital Twin
-      </button>
+      {launcher && (
+        <button
+          type="button"
+          className="chat-fab"
+          onClick={() => setOpen((o) => !o)}
+          aria-label="Open the digital twin chat"
+        >
+          <span className="pulse" /> Ask my Digital Twin
+        </button>
+      )}
 
       <div
         className={`chat-panel ${open ? "open" : ""}`}

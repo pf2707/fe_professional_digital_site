@@ -106,6 +106,29 @@ export const profile = {
     },
   ],
 
+  // Latest AI certificates — hung as framed certificates on the studio wall.
+  certificates: [
+    {
+      title: "AI FDE: The Forward Deployed Engineer & Agentic AI Architect",
+      issuer: "Udemy",
+      instructor: "Ed Donner",
+      date: "2026-11-05",
+    },
+    {
+      title: "AI Builder: Create Agents, Voice Agents & Automations in n8n",
+      issuer: "Udemy",
+      instructor: "Ligency, Ed Donner",
+      date: "2026-07-21",
+    },
+    {
+      title: "AI Coder: Complete Claude Code & Coding Agents Course",
+      issuer: "Udemy",
+      instructor: "Ligency, Ed Donner",
+      date: "2026-06-27",
+      note: "Claude Code, Cursor, Copilot and Codex — building Skills, MCP servers, sub-agents and agent teams.",
+    },
+  ],
+
   // How many projects to show per group before the "View all" toggle reveals the rest.
   featuredPerGroup: 3,
   projects: [
