@@ -10,16 +10,16 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import { Billboard, Float, Html, RoundedBox, Sparkles, useCursor, useTexture } from "@react-three/drei";
 import * as THREE from "three";
-import { profile } from "@/lib/profile";
+import { profile, type Certificate } from "@/lib/profile";
 import { HOTSPOTS, type HotspotId } from "./hotspots";
 import {
   drawCertificate,
   drawCorkboard,
+  drawInitials,
   drawLabel,
   drawNeon,
   drawSkyline,
   drawTerminal,
-  TERMINAL_LINES,
   useCanvasTexture,
 } from "./textures";
 
@@ -159,13 +159,14 @@ function Shell({ night }: { night: boolean }) {
 
 // ── Desk, monitor (Work), lamp (lights switch), chair ───────────────────────
 function Desk({ room }: { room: RoomProps }) {
-  const [step, setStep] = useState(room.calm ? TERMINAL_LINES.length : 1);
+  const lines = profile.studio.terminal;
+  const [step, setStep] = useState(room.calm ? lines.length : 1);
   useEffect(() => {
     if (room.calm) return;
-    const t = setInterval(() => setStep((s) => (s >= TERMINAL_LINES.length + 6 ? 1 : s + 1)), 700);
+    const t = setInterval(() => setStep((s) => (s >= lines.length + 6 ? 1 : s + 1)), 700);
     return () => clearInterval(t);
-  }, [room.calm]);
-  const screen = useCanvasTexture(drawTerminal(step), 1024, 576, [step]);
+  }, [room.calm, lines.length]);
+  const screen = useCanvasTexture(drawTerminal(lines, step), 1024, 576, [step]);
   const [lampHover, setLampHover] = useState(false);
   useCursor(lampHover);
 
@@ -335,8 +336,8 @@ function Rack({ room }: { room: RoomProps }) {
 }
 
 // ── Certificates on the left wall (Certificates) + neon name sign ───────────
-function Certificate({ cert, z }: { cert: (typeof profile.certificates)[number]; z: number }) {
-  const tex = useCanvasTexture(drawCertificate(cert), 640, 820, []);
+function Certificate({ cert, z }: { cert: Certificate; z: number }) {
+  const tex = useCanvasTexture(drawCertificate(cert, profile.name), 640, 820, [JSON.stringify(cert), profile.name]);
   return (
     <group position={[-3.97, 2.3, z]} rotation={[0, Math.PI / 2, 0]}>
       <Box size={[0.98, 1.24, 0.05]} position={[0, 0, 0]} color={C.woodDark} rough={0.4} />
@@ -349,11 +350,12 @@ function Certificate({ cert, z }: { cert: (typeof profile.certificates)[number];
 }
 
 function CertWall({ room }: { room: RoomProps }) {
-  const neon = useCanvasTexture(drawNeon("build · deploy · repeat", C.teal), 1024, 160, []);
+  const neon = useCanvasTexture(drawNeon(profile.studio.neon, C.teal), 1024, 160, [profile.studio.neon]);
   return (
     <>
       <Hotspot id="certs" room={room} labelAt={[-3.6, 3.2, -0.6]}>
-        {profile.certificates.map((c, i) => (
+        {/* The wall has room for three frames; newest first. */}
+        {profile.certificates.slice(0, 3).map((c, i) => (
           <Certificate key={c.title} cert={c} z={0.6 - i * 1.25} />
         ))}
       </Hotspot>
@@ -373,7 +375,7 @@ function CertWall({ room }: { room: RoomProps }) {
 
 // ── Corkboard (Career) ──────────────────────────────────────────────────────
 function Corkboard({ room }: { room: RoomProps }) {
-  const tex = useCanvasTexture(drawCorkboard(profile.experience), 1280, 560, []);
+  const tex = useCanvasTexture(drawCorkboard(profile.experience), 1280, 560, [JSON.stringify(profile.experience)]);
   return (
     <Hotspot id="career" room={room} labelAt={[0.9, 4.1, -3.8]}>
       <Box size={[2.5, 1.14, 0.06]} position={[0.9, 3.32, -3.97]} color={C.woodDark} />
@@ -386,11 +388,9 @@ function Corkboard({ room }: { room: RoomProps }) {
 }
 
 // ── Filing cabinet (Mobile archive) ─────────────────────────────────────────
-const DRAWERS = ["iOS · Swift", "Flutter", "Android", "2013 — 2026"];
-
 function Drawer({ index, pull, label }: { index: number; pull: number; label: string }) {
   const ref = useRef<THREE.Group>(null);
-  const tex = useCanvasTexture(drawLabel(label), 320, 96, []);
+  const tex = useCanvasTexture(drawLabel(label), 320, 96, [label]);
   useFrame((_, dt) => {
     if (!ref.current) return;
     ref.current.position.z = THREE.MathUtils.damp(ref.current.position.z, pull, 6, dt);
@@ -429,8 +429,8 @@ function Cabinet({ room }: { room: RoomProps }) {
     <Hotspot id="archive" room={room} labelAt={[-3.2, 2.5, -3.0]}>
       <Box size={[1.1, 1.98, 0.9]} position={[-3.2, 0.99, -3.2]} color={C.woodDark} rough={0.6} />
       <Box size={[1.16, 0.06, 0.96]} position={[-3.2, 2.01, -3.2]} color={C.wood} rough={0.45} />
-      {DRAWERS.map((label, i) => (
-        <Drawer key={label} index={i} label={label} pull={i === 0 ? (open ? 0.62 : peek ? 0.12 : 0) : 0} />
+      {[0, 1, 2, 3].map((i) => profile.studio.drawers[i] ?? "").map((label, i) => (
+        <Drawer key={i} index={i} label={label} pull={i === 0 ? (open ? 0.62 : peek ? 0.12 : 0) : 0} />
       ))}
       {/* a little dust over the archive */}
       {!room.calm && <Sparkles count={14} scale={[1.2, 1.2, 1.2]} position={[-3.2, 2.5, -3.0]} size={2} speed={0.2} color="#f6e6c4" opacity={0.6} />}
@@ -546,8 +546,35 @@ function ReadingCorner({ room }: { room: RoomProps }) {
 }
 
 // ── Hologram (Digital twin) ─────────────────────────────────────────────────
+function PhotoFace({ src }: { src: string }) {
+  const map = useTexture(src);
+  return <HoloDisc map={map} />;
+}
+
+// No photo set: project the initials instead.
+function InitialsFace() {
+  const map = useCanvasTexture(drawInitials(profile.initials), 512, 512, [profile.initials]);
+  return <HoloDisc map={map} />;
+}
+
+function HoloDisc({ map }: { map: THREE.Texture }) {
+  return (
+    <mesh>
+      <circleGeometry args={[0.36, 48]} />
+      <meshBasicMaterial
+        map={map}
+        color={[0.55, 1.6, 1.5]}
+        transparent
+        opacity={0.9}
+        blending={THREE.AdditiveBlending}
+        toneMapped={false}
+        depthWrite={false}
+      />
+    </mesh>
+  );
+}
+
 function Hologram({ room }: { room: RoomProps }) {
-  const avatar = useTexture(profile.avatar || "/avatar.png");
   const rings = useRef<THREE.Group>(null);
   useFrame((_, dt) => {
     if (!rings.current || room.calm) return;
@@ -573,18 +600,7 @@ function Hologram({ room }: { room: RoomProps }) {
       </mesh>
       <Float speed={room.calm ? 0 : 2} floatIntensity={room.calm ? 0 : 0.6} rotationIntensity={0}>
         <Billboard position={[-1.6, 1.55, 1.0]}>
-          <mesh>
-            <circleGeometry args={[0.36, 48]} />
-            <meshBasicMaterial
-              map={avatar}
-              color={[0.55, 1.6, 1.5]}
-              transparent
-              opacity={0.9}
-              blending={THREE.AdditiveBlending}
-              toneMapped={false}
-              depthWrite={false}
-            />
-          </mesh>
+          {profile.avatar ? <PhotoFace src={profile.avatar} /> : <InitialsFace />}
         </Billboard>
         <group ref={rings} position={[-1.6, 1.55, 1.0]}>
           <mesh rotation={[Math.PI / 2.3, 0, 0]}>

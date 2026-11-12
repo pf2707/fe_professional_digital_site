@@ -1,0 +1,91 @@
+{
+  "name": "Alex Morgan",
+  "initials": "AM",
+  "avatar": "",
+  "title": "Software Engineer",
+  "subtitle": "Software engineer in your city",
+  "tagline": "I build software that people rely on.",
+  "available": true,
+  "location": "City, Country",
+  "email": "you@example.com",
+  "languages": "English",
+  "stats": [
+    { "value": "5+", "label": "Years Experience" },
+    { "value": "20+", "label": "Projects Shipped" }
+  ],
+  "about": [
+    "A short introduction: what you do, who you do it for, and what you're looking for next.",
+    "A second paragraph about recent work you're proud of.",
+    "Something personal: where you're from and what you do outside work."
+  ],
+  "experience": [
+    {
+      "period": "2022 — Present",
+      "role": "Current role",
+      "org": "Company · Full-time",
+      "summary": "What you own, what you shipped, and the result."
+    },
+    {
+      "period": "2019 — 2022",
+      "role": "Previous role",
+      "org": "Company",
+      "summary": "What you owned, what you shipped, and the result."
+    }
+  ],
+  "skills": [
+    { "group": "Core skills", "items": ["Skill one", "Skill two", "Skill three"] },
+    { "group": "Tools", "items": ["Tool one", "Tool two"] },
+    { "group": "Earlier specialty", "items": ["Older skill"], "archived": true }
+  ],
+  "certificates": [
+    {
+      "title": "Certificate title",
+      "issuer": "Issuer",
+      "instructor": "Instructor",
+      "date": "2026-01-15",
+      "badge": "★"
+    }
+  ],
+  "projectGroups": [
+    { "key": "current", "label": "Recent work", "archived": false },
+    { "key": "earlier", "label": "Earlier work", "archived": true }
+  ],
+  "projects": [
+    { "category": "current", "icon": "🚀", "name": "Project name", "description": "One sentence on what it is and your part in it." },
+    { "category": "earlier", "icon": "📦", "name": "Older project", "description": "One sentence on what it is and your part in it." }
+  ],
+  "socials": [
+    { "label": "in", "title": "LinkedIn", "href": "https://www.linkedin.com/" },
+    { "label": "gh", "title": "GitHub", "href": "https://github.com/" },
+    { "label": "@", "title": "Email", "href": "mailto:you@example.com" }
+  ],
+  "studio": {
+    "neon": "make · ship · learn",
+    "terminal": [
+      "$ git pull",
+      "› 3 new commits",
+      "$ npm test",
+      "› 128 tests passed ✓",
+      "$ deploy --prod",
+      "› shipped to production ✓"
+    ],
+    "drawers": ["Earlier work", "Side projects", "Notes", "2015 — 2022"],
+    "sections": {
+      "work": { "label": "Work", "hint": "The monitor — projects", "title": "Selected work", "lede": "The projects I'm proudest of." },
+      "stack": { "label": "Stack", "hint": "The rack — skills", "title": "Skills and tools", "lede": "What I use day to day." },
+      "certs": { "label": "Certificates", "hint": "The frames — certificates", "title": "Certificates", "lede": "Courses and certifications." },
+      "career": { "label": "Career", "hint": "The corkboard — timeline", "title": "Career", "lede": "Where I've worked." },
+      "archive": { "label": "Archive", "hint": "The cabinet — earlier work", "title": "The archive", "lede": "Earlier work, filed away but not forgotten." },
+      "about": { "label": "About", "hint": "The reading corner — about me", "title": "", "lede": "" },
+      "twin": { "label": "Digital twin", "hint": "The hologram — ask me anything", "title": "", "lede": "" }
+    }
+  },
+  "twin": {
+    "greeting": "👋 Hi! I'm Alex's digital twin. Ask me anything about Alex's career, skills, or projects.",
+    "suggestions": [
+      "What are you working on now?",
+      "What's your strongest skill?",
+      "Are you open to new roles?"
+    ]
+  }
+}

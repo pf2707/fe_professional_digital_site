@@ -1,79 +1,67 @@
 // ─────────────────────────────────────────────────────────────────────────────
 //  Every clickable object in the studio, in dock order. The number key that
-//  focuses a hotspot is its index + 1.
+//  focuses a hotspot is its index + 1. Labels and hover hints are content
+//  (data/profile.json); camera positions belong to the 3D room.
 //  `camera` / `target` are where the camera flies to when the hotspot opens.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type HotspotId =
-  | "work"
-  | "stack"
-  | "certs"
-  | "career"
-  | "archive"
-  | "about"
-  | "twin";
+import { profile, type SectionId } from "@/lib/profile";
+
+export type HotspotId = SectionId;
 
 export type Vec3 = [number, number, number];
 
 export type Hotspot = {
   id: HotspotId;
-  label: string; // dock + hover label
-  hint: string; // what the object is, shown on hover
+  label: string; // dock + hover label (from data/profile.json)
+  hint: string; // what the object is, shown on hover (from data/profile.json)
   camera: Vec3;
   target: Vec3;
 };
 
-export const HOTSPOTS: Hotspot[] = [
+const VIEWS: Omit<Hotspot, "label" | "hint">[] = [
   {
     id: "work",
-    label: "Work",
-    hint: "The monitor — AI projects",
     camera: [1.9, 2.75, 0.9],
     target: [0.9, 2.05, -3.3],
   },
   {
     id: "stack",
-    label: "Stack",
-    hint: "The agent rack — skills",
     camera: [3.0, 2.6, 0.6],
     target: [3.25, 1.8, -3.3],
   },
   {
     id: "certs",
-    label: "Certificates",
-    hint: "The frames — AI certificates",
     camera: [0.6, 2.55, -0.2],
     target: [-3.9, 2.35, -0.6],
   },
   {
     id: "career",
-    label: "Career",
-    hint: "The corkboard — timeline",
     camera: [0.9, 3.4, 0.3],
     target: [0.9, 3.3, -3.9],
   },
   {
     id: "archive",
-    label: "Mobile archive",
-    hint: "The cabinet — 10+ years of iOS & Flutter",
     camera: [-0.9, 2.1, -0.4],
     target: [-3.2, 1.0, -3.2],
   },
   {
     id: "about",
-    label: "About",
-    hint: "The reading corner — about me",
     camera: [5.6, 2.6, 4.4],
     target: [2.4, 0.8, 1.2],
   },
   {
     id: "twin",
-    label: "Digital twin",
-    hint: "The hologram — ask me anything",
     camera: [1.2, 2.2, 4.6],
     target: [-1.6, 1.5, 1.0],
   },
 ];
+
+export const HOTSPOTS: Hotspot[] = VIEWS.map((v) => ({
+  ...v,
+  label: profile.studio.sections[v.id].label,
+  hint: profile.studio.sections[v.id].hint,
+}));
 
 // Overview: the isometric-ish establishing shot of the whole room.
 export const HOME_VIEW = {

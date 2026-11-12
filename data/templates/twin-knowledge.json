@@ -1,0 +1,9 @@
+{
+  "currentGoal": "Software Engineer, looking for the next role.",
+  "summary": "A few sentences the twin uses to introduce the person.",
+  "sources": [
+    { "title": "CV", "content": "Paste the person's CV text here." },
+    { "title": "LinkedIn profile", "content": "" }
+  ],
+  "rules": ""
+}

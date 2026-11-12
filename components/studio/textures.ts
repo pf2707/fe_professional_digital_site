@@ -63,20 +63,8 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number) {
 }
 
 // ── Monitor: an agent session scrolling in a terminal ───────────────────────
-export const TERMINAL_LINES = [
-  "$ claude --agents fde-team",
-  "› discovery   reading client brief…",
-  "› architect   drafting agent harness",
-  "› builder     wiring MCP: crm, calendar",
-  "› reviewer    12 checks passed",
-  "› deploy      shipped to production ✓",
-  "$ n8n run lead-pipeline",
-  "› 48 leads scored · 9 booked calls",
-  "$ twin --answer \"why hire Thai?\"",
-  "› ships AI that works in production.",
-];
-
-export function drawTerminal(step: number): Draw {
+// Lines starting with "$" are commands; lines containing "✓" are highlighted.
+export function drawTerminal(lines: string[], step: number): Draw {
   return (ctx, w, h) => {
     const g = ctx.createLinearGradient(0, 0, 0, h);
     g.addColorStop(0, "#0b1a2c");
@@ -94,9 +82,9 @@ export function drawTerminal(step: number): Draw {
     });
 
     ctx.font = `500 26px ui-monospace, Menlo, monospace`;
-    const visible = Math.min(step, TERMINAL_LINES.length);
+    const visible = Math.min(step, lines.length);
     const start = Math.max(0, visible - 9);
-    TERMINAL_LINES.slice(start, visible).forEach((line, i) => {
+    lines.slice(start, visible).forEach((line, i) => {
       ctx.fillStyle = line.startsWith("$") ? "#f5a945" : line.includes("✓") ? "#5ee6c8" : "#b9cbe0";
       ctx.fillText(line, 28, 92 + i * 44);
     });
@@ -169,12 +157,10 @@ export function drawSkyline(night: boolean): Draw {
 }
 
 // ── Certificate in a frame ──────────────────────────────────────────────────
-export function drawCertificate(cert: {
-  title: string;
-  issuer: string;
-  instructor: string;
-  date: string;
-}): Draw {
+export function drawCertificate(
+  cert: { title: string; issuer: string; instructor: string; date: string; badge?: string },
+  holder: string,
+): Draw {
   return (ctx, w, h) => {
     ctx.fillStyle = "#f6f1e7";
     ctx.fillRect(0, 0, w, h);
@@ -197,7 +183,7 @@ export function drawCertificate(cert: {
 
     ctx.fillStyle = "#3a4256";
     ctx.font = `400 26px ${body}`;
-    ctx.fillText(`Thai Tran — ${cert.instructor}`, 60, h - 90);
+    ctx.fillText(`${holder} — ${cert.instructor}`, 60, h - 90);
     ctx.fillText(
       new Date(cert.date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
       60,
@@ -212,7 +198,7 @@ export function drawCertificate(cert: {
     ctx.fillStyle = "#f6f1e7";
     ctx.font = `700 30px ${display}`;
     ctx.textAlign = "center";
-    ctx.fillText("AI", w - 110, h - 99);
+    ctx.fillText((cert.badge || "✓").slice(0, 3), w - 110, h - 99);
     ctx.textAlign = "left";
   };
 }
@@ -301,5 +287,18 @@ export function drawLabel(text: string): Draw {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(text, w / 2, h / 2 + 2);
+  };
+}
+
+// ── Hologram face when there's no photo ─────────────────────────────────────
+export function drawInitials(initials: string): Draw {
+  return (ctx, w, h) => {
+    ctx.fillStyle = "#1a3a40";
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = `800 ${Math.round(h * 0.38)}px ${cssFont("--font-display")}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(initials.slice(0, 3), w / 2, h / 2 + 6);
   };
 }

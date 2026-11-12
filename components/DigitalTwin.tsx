@@ -7,12 +7,6 @@ import { profile } from "@/lib/profile";
 
 type Message = { role: "user" | "assistant"; content: string };
 
-const SUGGESTIONS = [
-  "What's your experience with Flutter vs native iOS?",
-  "Tell me about your forward deployed projects",
-  "Are you available for new projects?",
-];
-
 export function DigitalTwin({
   open: openProp,
   onOpenChange,
@@ -31,10 +25,7 @@ export function DigitalTwin({
     else setOpenState(value);
   };
   const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "assistant",
-      content: `👋 Hi! I'm ${profile.name}'s digital twin. Ask me anything about his career, skills, or projects.`,
-    },
+    { role: "assistant", content: profile.twin.greeting },
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -185,7 +176,7 @@ export function DigitalTwin({
 
         {messages.length <= 1 && (
           <div className="suggestions">
-            {SUGGESTIONS.map((s) => (
+            {profile.twin.suggestions.map((s) => (
               <button key={s} onClick={() => send(s)}>
                 {s}
               </button>

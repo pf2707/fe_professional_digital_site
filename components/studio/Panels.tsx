@@ -2,13 +2,34 @@
 
 import { useEffect, useRef } from "react";
 import Image from "next/image";
-import { profile } from "@/lib/profile";
+import { archivedGroups, liveGroups, profile, type ProjectGroup } from "@/lib/profile";
 import { HOTSPOTS, type HotspotId } from "./hotspots";
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
-function ProjectList({ category }: { category: "fde" | "ai" | "mobile" }) {
+const copy = (id: keyof typeof profile.studio.sections) => profile.studio.sections[id];
+
+function Intro({ id }: { id: keyof typeof profile.studio.sections }) {
+  const { title, lede } = copy(id);
+  return (
+    <>
+      <h2>{title}</h2>
+      {lede && <p className="lede">{lede}</p>}
+    </>
+  );
+}
+
+function Groups({ groups }: { groups: ProjectGroup[] }) {
+  return groups.map((g) => (
+    <div key={g.key}>
+      <h3>{g.label}</h3>
+      <ProjectList category={g.key} />
+    </div>
+  ));
+}
+
+function ProjectList({ category }: { category: string }) {
   return (
     <ul className="p-list">
       {profile.projects
@@ -31,22 +52,17 @@ function ProjectList({ category }: { category: "fde" | "ai" | "mobile" }) {
 function Work() {
   return (
     <>
-      <h2>AI work that ships</h2>
-      <p className="lede">{profile.tagline} Client deployments first, then the agents and automations behind them.</p>
-      <h3>With clients</h3>
-      <ProjectList category="fde" />
-      <h3>Agents and automations</h3>
-      <ProjectList category="ai" />
+      <Intro id="work" />
+      <Groups groups={liveGroups()} />
     </>
   );
 }
 
 function Stack() {
-  const groups = profile.skills.filter((g) => g.group !== "Mobile Development");
+  const groups = profile.skills.filter((g) => !g.archived);
   return (
     <>
-      <h2>The agent stack</h2>
-      <p className="lede">What runs in the rack: the tools and practices I use to design, build and deploy AI systems.</p>
+      <Intro id="stack" />
       {groups.map((g) => (
         <section key={g.group} className="rack-unit">
           <h3>{g.group}</h3>
@@ -64,8 +80,7 @@ function Stack() {
 function Certs() {
   return (
     <>
-      <h2>Certificates on the wall</h2>
-      <p className="lede">Three courses completed in 2026, covering forward deployed engineering, agent building and coding agents.</p>
+      <Intro id="certs" />
       <ol className="certs">
         {profile.certificates.map((c) => (
           <li key={c.title}>
@@ -74,7 +89,7 @@ function Certs() {
             <p>
               {c.issuer}, taught by {c.instructor}
             </p>
-            {"note" in c && c.note && <p className="cert-note">{c.note}</p>}
+            {c.note && <p className="cert-note">{c.note}</p>}
           </li>
         ))}
       </ol>
@@ -85,8 +100,7 @@ function Certs() {
 function Career() {
   return (
     <>
-      <h2>Career</h2>
-      <p className="lede">Thirteen years of shipping software, and a deliberate turn toward AI.</p>
+      <Intro id="career" />
       <ol className="timeline-list">
         {profile.experience.map((e) => (
           <li key={e.role}>
@@ -102,23 +116,18 @@ function Career() {
 }
 
 function Archive() {
-  const mobile = profile.skills.find((g) => g.group === "Mobile Development");
+  const skills = profile.skills.filter((g) => g.archived).flatMap((g) => g.items);
   return (
     <>
-      <h2>The mobile archive</h2>
-      <p className="lede">
-        Ten years of iOS, Android and Flutter, filed away while I focus on AI. Everything here is still a skill
-        I use: ask the twin about Swift or Flutter any time.
-      </p>
-      {mobile && (
+      <Intro id="archive" />
+      {skills.length > 0 && (
         <div className="chips chips-paper">
-          {mobile.items.map((s) => (
+          {skills.map((s) => (
             <span key={s}>{s}</span>
           ))}
         </div>
       )}
-      <h3>Filed projects</h3>
-      <ProjectList category="mobile" />
+      <Groups groups={archivedGroups()} />
     </>
   );
 }

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { DigitalTwin } from "@/components/DigitalTwin";
-import { profile } from "@/lib/profile";
+import { liveGroups, archivedGroups, profile } from "@/lib/profile";
 
 // The plain, printable version of the studio: for recruiters, search
 // engines, screen readers and browsers without WebGL.
@@ -10,12 +10,6 @@ export const metadata: Metadata = {
   title: `${profile.name} — CV`,
   description: `${profile.title}. ${profile.tagline}`,
 };
-
-const GROUPS = [
-  { key: "fde", label: "Forward deployed engineering" },
-  { key: "ai", label: "AI agents and automation" },
-  { key: "mobile", label: "Mobile development (archive)" },
-] as const;
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
@@ -78,7 +72,7 @@ export default function CV() {
       </dl>
 
       <h2>Projects</h2>
-      {GROUPS.map((g) => (
+      {[...liveGroups(), ...archivedGroups()].map((g) => (
         <div key={g.key}>
           <h3>{g.label}</h3>
           <ul>

@@ -96,7 +96,7 @@ export function Studio() {
       <header className="hud-top">
         <button className="brand" onClick={close} aria-label="Back to the room overview">
           <strong>{profile.name}</strong>
-          <span>AI agentic engineer in Ho Chi Minh City</span>
+          <span>{profile.subtitle}</span>
         </button>
         <div className="hud-actions">
           <Link href="/cv" className="hud-link">
