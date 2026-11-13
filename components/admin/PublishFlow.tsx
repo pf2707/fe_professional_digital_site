@@ -12,6 +12,7 @@ import { useUser } from "@/components/auth/AuthProvider";
 import { DesignSwatch } from "@/components/scene/DesignPicker";
 import { CONTACT } from "@/lib/business";
 import { designById } from "@/lib/designs";
+import { lookName, placeById } from "@/lib/places";
 import { loadDraft, loadFromCloud } from "@/lib/draft";
 import type { CvContent } from "@/lib/profile";
 import { cvPath, SLUG_MAX, slugProblem, toSlug } from "@/lib/slug";
@@ -160,7 +161,7 @@ function Summary({ draft }: { draft: CvContent }) {
         <strong>{p.name}</strong>
         <span>{p.title}</span>
         <span className="publish-design">
-          <DesignSwatch design={design} /> {design.name} · digital twin {p.twin.enabled === false ? "off" : "on"}
+          <DesignSwatch design={design} /> {lookName(placeById(p.studio.place), design)} · digital twin {p.twin.enabled === false ? "off" : "on"}
         </span>
       </div>
     </div>

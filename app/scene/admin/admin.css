@@ -510,7 +510,7 @@ body:has(.admin) {
   }
 }
 
-/* Room design choice (3D studio tab) */
+/* Place and colour choices (3D studio tab) */
 .design-choices {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));

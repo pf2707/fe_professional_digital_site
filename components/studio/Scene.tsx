@@ -5,11 +5,15 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, Lightformer } from "@react-three/drei";
 import { Bloom, EffectComposer, Vignette } from "@react-three/postprocessing";
 import * as THREE from "three";
-import { HOME_VIEW, INTRO_VIEW, MOTTO, VIEWS } from "./hotspots";
-import { Room, type RoomProps } from "./Room";
+import { Cafe } from "./Cafe";
+import { Park } from "./Park";
+import type { RoomProps } from "./parts";
+import { Room } from "./Room";
+import { Shop } from "./Shop";
 import { useStudioData } from "./StudioData";
 
 const UP = new THREE.Vector3(0, 1, 0);
+const PLACES = { room: Room, cafe: Cafe, park: Park, shop: Shop };
 
 // Flies between the overview and each hotspot's close-up. Damped every frame,
 // so a new selection mid-flight just bends the path instead of restarting it.
@@ -17,6 +21,7 @@ const UP = new THREE.Vector3(0, 1, 0);
 // the right of the headline, or above it on phones.
 function CameraRig({ active, calm, showcase }: Pick<RoomProps, "active" | "calm"> & { showcase?: boolean }) {
   const { camera, size, pointer } = useThree();
+  const { home: HOME_VIEW, intro: INTRO_VIEW, motto: MOTTO, views: VIEWS } = useStudioData().layout;
   const look = useRef(new THREE.Vector3(...(calm ? HOME_VIEW.target : INTRO_VIEW.target)));
   const started = useRef(false);
   const goalPos = useRef(new THREE.Vector3());
@@ -103,7 +108,9 @@ function CameraRig({ active, calm, showcase }: Pick<RoomProps, "active" | "calm"
 
 export default function Scene(props: RoomProps & { onReady: () => void; showcase?: boolean; paused?: boolean }) {
   const { onReady, showcase, paused, ...room } = props;
-  const { palette } = useStudioData().design;
+  const { design, place } = useStudioData();
+  const { palette } = design;
+  const Place = PLACES[place.id];
   return (
     <Canvas
       shadows={{ type: THREE.PCFShadowMap }}
@@ -120,7 +127,7 @@ export default function Scene(props: RoomProps & { onReady: () => void; showcase
           <Lightformer form="rect" intensity={1} color={palette.teal} position={[-6, 3, 0]} scale={[4, 4, 1]} />
           <Lightformer form="rect" intensity={1.5} color={palette.amber} position={[6, 2, 2]} scale={[4, 3, 1]} />
         </Environment>
-        <Room {...room} />
+        <Place {...room} />
         <EffectComposer multisampling={0}>
           <Bloom mipmapBlur luminanceThreshold={1} intensity={room.night ? 0.9 : 0.4} radius={0.7} />
           <Vignette eskil={false} offset={0.25} darkness={room.night ? 0.65 : 0.35} />

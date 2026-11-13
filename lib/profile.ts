@@ -58,7 +58,8 @@ export type Profile = {
   projects: Project[];
   socials: Social[];
   studio: {
-    design?: string; // a room design id from lib/designs.ts
+    place?: string; // a place id from lib/places.ts ("room" when unset)
+    design?: string; // a colour design id from lib/designs.ts
     neon: string; // the neon sign above the certificates; one line per row
     terminal: string[]; // lines typed on the monitor
     drawers: string[]; // filing cabinet drawer labels, top to bottom

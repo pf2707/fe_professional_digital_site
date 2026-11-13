@@ -1,8 +1,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
-//  3D room designs. Each design is a palette for the same room: walls, floor,
-//  wood, metal, the two accent lights (lamp + screens/hologram) and the sky
-//  behind the diorama. A CV picks one in /scene/admin (profile.studio.design);
-//  /scene lets visitors flip between them.
+//  Colour designs. Each is a palette for any place (lib/places.ts): walls,
+//  floor, wood, metal, the two accent lights (lamps + screens/hologram) and
+//  the sky behind the diorama. A CV picks a place and a colour design in
+//  /scene/admin (profile.studio.place, .design); /scene lets visitors try them.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type Palette = {
@@ -31,7 +31,7 @@ export type Design = {
 export const DESIGNS: Design[] = [
   {
     id: "studio",
-    name: "Night studio",
+    name: "Night",
     blurb: "Warm wood, teal screens, amber lamps.",
     palette: {
       wall: "#d6cbbb",
@@ -50,7 +50,7 @@ export const DESIGNS: Design[] = [
   },
   {
     id: "sakura",
-    name: "Sakura loft",
+    name: "Sakura",
     blurb: "Blush walls, pale oak, pink neon.",
     palette: {
       wall: "#f0dcdc",
@@ -69,7 +69,7 @@ export const DESIGNS: Design[] = [
   },
   {
     id: "cyber",
-    name: "Cyber den",
+    name: "Cyber",
     blurb: "Midnight walls, cyan and magenta light.",
     palette: {
       wall: "#3a3f63",
@@ -88,8 +88,8 @@ export const DESIGNS: Design[] = [
   },
   {
     id: "forest",
-    name: "Forest cabin",
-    blurb: "Pine, moss-green light, a woodstove glow.",
+    name: "Forest",
+    blurb: "Pine, moss-green light, a warm glow.",
     palette: {
       wall: "#cdb894",
       wallNight: "#a8946f",

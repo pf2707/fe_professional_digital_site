@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { AuthProvider } from "@/components/auth/AuthProvider";
 import { PendingCv } from "@/components/cv/PendingCv";
 import { ReviewBar } from "@/components/owner/ReviewBar";
+import { OwnerEditLink } from "@/components/studio/OwnerEditLink";
 import { Studio } from "@/components/studio/Studio";
 import { StudioDataProvider } from "@/components/studio/StudioData";
 import { cvView } from "@/lib/cv-page";
@@ -30,7 +32,10 @@ export default async function CvPage(props: PageProps<"/scene/[slug]">) {
 
   return (
     <StudioDataProvider profile={view.cv.profile} slug={slug} cvHref={`${cvPath(slug)}/cv`}>
-      <Studio />
+      <AuthProvider>
+        {/* The owner reviewing it already has their own bar. */}
+        <Studio back actions={view.review ? null : <OwnerEditLink ownerUid={view.cv.ownerUid} />} />
+      </AuthProvider>
       {view.review && <ReviewBar slug={slug} owner={view.cv.ownerEmail} twin={twinEnabled(view.cv.profile)} />}
     </StudioDataProvider>
   );

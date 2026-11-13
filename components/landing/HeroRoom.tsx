@@ -1,7 +1,8 @@
 "use client";
 
-// The landing page's headline image: the sample room, live. It gives itself a
-// tour: the overview (drifting slowly, changing room design halfway through),
+// The landing page's headline image: the sample CV, live. It gives itself a
+// tour: the overview of the studio (drifting slowly; halfway through it
+// changes colours),
 // then a close-up of one object with its panel (wide screens only), back out,
 // the next object, and so on.
 // Nothing in it is clickable; the page's button leads into the real,
@@ -14,13 +15,17 @@ import { StudioDataProvider } from "@/components/studio/StudioData";
 import type { HotspotId } from "@/components/studio/hotspots";
 import { Panel } from "@/components/studio/Panels";
 import { DESIGNS } from "@/lib/designs";
+import { lookName, placeById } from "@/lib/places";
 import type { Profile } from "@/lib/profile";
 
 const Scene = dynamic(() => import("@/components/studio/Scene"), { ssr: false });
 
 // The filing cabinet, the computer, the corkboard, the server rack.
 const TOUR: HotspotId[] = ["archive", "work", "career", "stack"];
-const OVERVIEW_SECONDS = 5; // the room design changes halfway through
+const OVERVIEW_SECONDS = 5; // the colours change halfway through
+// The hero is always the studio; the other places have their own section below.
+const STUDIO = placeById("room");
+const LOOKS = DESIGNS.map((design) => ({ place: STUDIO, design }));
 const CLOSE_UP_SECONDS = 6; // long enough to glance at the panel
 const noop = () => {};
 
@@ -59,7 +64,7 @@ export function HeroRoom({ profile }: { profile: Profile }) {
       return () => clearTimeout(t);
     }
     const half = (OVERVIEW_SECONDS / 2) * 1000;
-    const swap = setTimeout(() => setIndex((i) => (i + 1) % DESIGNS.length), half);
+    const swap = setTimeout(() => setIndex((i) => (i + 1) % LOOKS.length), half);
     const next = setTimeout(() => {
       const s = (stop + 1) % TOUR.length;
       setStop(s);
@@ -71,14 +76,14 @@ export function HeroRoom({ profile }: { profile: Profile }) {
     };
   }, [calm, visible, ready, active, stop]);
 
-  const design = DESIGNS[index];
+  const { place, design } = LOOKS[index];
   const [s1, s2, s3] = design.sky.night;
   const sky = { "--hero-sky-1": s1, "--hero-sky-2": s2, "--hero-sky-3": s3 } as CSSProperties;
 
   return (
     <div ref={ref} className={`hero-room ${ready ? "is-ready" : ""} ${active ? "is-close" : ""}`} style={sky} aria-hidden>
       {webgl && (
-        <StudioDataProvider profile={profile} design={design.id} cvHref="/cv">
+        <StudioDataProvider profile={profile} place={place.id} design={design.id} cvHref="/cv">
           <div className="hero-canvas">
             <Scene
               showcase
@@ -98,7 +103,7 @@ export function HeroRoom({ profile }: { profile: Profile }) {
       )}
       <p className="hero-design">
         <DesignSwatch design={design} />
-        {design.name}
+        {lookName(place, design)}
       </p>
     </div>
   );

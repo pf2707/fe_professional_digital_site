@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } 
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useTheme } from "next-themes";
+import { BackButton } from "@/components/BackButton";
 import { DigitalTwin } from "@/components/DigitalTwin";
 import type { HotspotId } from "./hotspots";
 import { Panel } from "./Panels";
@@ -21,7 +22,9 @@ function hasWebGL() {
 }
 
 // `extra` is page-specific chrome drawn over the room, like the design picker on /scene.
-export function Studio({ extra }: { extra?: ReactNode } = {}) {
+// `actions` go first in the top bar (e.g. Edit). `back` adds a Back button; the
+// editor's preview pane leaves it out.
+export function Studio({ extra, actions, back = false }: { extra?: ReactNode; actions?: ReactNode; back?: boolean } = {}) {
   const { profile, design, cvHref } = useStudioData();
   const hotspots = useHotspots();
   const [active, setActive] = useState<HotspotId | null>(null);
@@ -104,11 +107,22 @@ export function Studio({ extra }: { extra?: ReactNode } = {}) {
       )}
 
       <header className="hud-top">
-        <button className="brand" onClick={close} aria-label="Back to the room overview">
-          <strong>{profile.name}</strong>
-          <span>{profile.subtitle}</span>
-        </button>
+        <div className="hud-left">
+          {back && (
+            <BackButton fallback="/" className="hud-link hud-back" label="Back to the previous page">
+              <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden>
+                <path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <span className="hide-sm">Back</span>
+            </BackButton>
+          )}
+          <button className="brand" onClick={close} aria-label="Back to the room overview">
+            <strong>{profile.name}</strong>
+            <span>{profile.subtitle}</span>
+          </button>
+        </div>
         <div className="hud-actions">
+          {actions}
           <Link href={cvHref} className="hud-link">
             Text CV
           </Link>

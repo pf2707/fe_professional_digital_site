@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { OwnerSignIn } from "@/components/owner/OwnerSignIn";
 import { designById } from "@/lib/designs";
+import { lookName, placeById } from "@/lib/places";
 import { listPendingCvs, liveProfile } from "@/lib/cv-store";
 import { isOwner, ownerConfigured } from "@/lib/owner-auth";
 import { cvPath } from "@/lib/slug";
@@ -71,7 +72,7 @@ export default async function OwnerPage(props: PageProps<"/owner">) {
                     <strong>{p.name || "Untitled"}</strong>
                     <span>{p.title}</span>
                     <span>
-                      {cvPath(cv.id)} · {designById(p.studio.design).name} · twin {p.twin.enabled === false ? "off" : "on"}
+                      {cvPath(cv.id)} · {lookName(placeById(p.studio.place), designById(p.studio.design))} · twin {p.twin.enabled === false ? "off" : "on"}
                     </span>
                   </span>
                   <span className="owner-meta">

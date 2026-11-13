@@ -7,6 +7,14 @@ export const metadata: Metadata = {
   description: `A sample interactive 3D CV: ${sampleProfile.title}.`,
 };
 
-export default function ScenePage() {
-  return <SceneShowcase profile={sampleProfile} />;
+// /scene?place=park&design=forest opens on that look (the landing page links here).
+export default async function ScenePage(props: PageProps<"/scene">) {
+  const { place, design } = await props.searchParams;
+  return (
+    <SceneShowcase
+      profile={sampleProfile}
+      place={typeof place === "string" ? place : undefined}
+      design={typeof design === "string" ? design : undefined}
+    />
+  );
 }

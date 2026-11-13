@@ -22,7 +22,7 @@ publish it. Built with Next.js (App Router), React Three Fiber, Firestore and Op
 | Path | What it is |
 |---|---|
 | `/` | Landing page: the live sample room as the headline image, a big button into `/scene` |
-| `/scene` | The sample CV (`data/profile.json`), with a rail to try each room design |
+| `/scene` | The sample CV (`data/profile.json`), with a rail to try each place and colour design |
 | `/cv` | The sample CV as plain text |
 | `/login`, `/register` | Sign in or create an account (email and password, or Google) |
 | `/scene/admin` | Fill in your CV. Needs an account: signed-out visitors are sent to `/login` first. The preview updates as you type |
@@ -45,7 +45,7 @@ Without `FIREBASE_ADMIN_CREDENTIALS`, drafts and CVs are saved as JSON files in 
 ## How publishing works
 
 1. A customer creates an account (`/register`, email and password or Google) and fills in
-   their CV at `/scene/admin`: details, photo, room design, and whether the digital twin is on.
+   their CV at `/scene/admin`: details, photo, place and colours, and whether the digital twin is on.
    **Save** (or ⌘S / Ctrl+S) stores it in Firestore as `drafts/<uid>`, so each account has
    one CV and can edit it from any device. Every API call carries the user's Firebase ID
    token, which the server verifies (`lib/auth-server.ts`).
@@ -104,11 +104,27 @@ reloading the preview starts a new trial. `lib/premium.ts` holds the limit and t
 Collections: `drafts` (one per account, keyed by uid) and `cvs` (reserved and published CVs, keyed
 by address).
 
-## Room designs
+## Places and colours
 
-`lib/designs.ts` holds the designs: Night studio, Sakura loft, Cyber den and Forest cabin.
-Each one is a palette for the same room plus the sky behind it. To add a design, add an
-entry; it appears on `/scene` and in `/scene/admin → 3D studio`.
+A CV picks a **place** (`studio.place`) and a **colour design** (`studio.design`), separately.
+
+- **Places** (`lib/places.ts`): the Studio (`components/studio/Room.tsx`), the Coffee shop
+  (`components/studio/Cafe.tsx`), the Park (`components/studio/Park.tsx`) and the Shop
+  (`components/studio/Shop.tsx`). Each is its own 3D scene with every CV section on an
+  object that suits it; the camera positions for each are in `LAYOUTS`
+  (`components/studio/hotspots.ts`). Pieces shared by every place (the clickable wrapper,
+  certificate frames, phone, hologram, lights) are in `components/studio/parts.tsx`.
+- **Colours** (`lib/designs.ts`): Night, Sakura, Cyber and Forest. Each is a palette for
+  any place (walls, floor, wood, metal, two accent lights) plus the sky behind it.
+
+Hover labels are written for the studio ("The monitor — AI projects"). In other places the
+object's name replaces the part before the dash ("The chalkboard menu — AI projects").
+
+To add a place: add it to `PLACES`, give it a layout in `LAYOUTS`, build its scene from
+`parts.tsx`, pick it in `Scene.tsx`, and add a picture of it as `public/places/<id>.webp`
+(a screenshot of the scene, about 1170×780). It then appears in the place picker on
+`/scene` and in the editor; to show it on the landing page too, add it to `SHOWN` in
+`app/page.tsx`.
 
 ## Refresh the sample twin's knowledge from `digital_twin`
 
@@ -172,7 +188,8 @@ components/
   DigitalTwin.tsx          # chat panel
 lib/
   profile.ts               # CV types + the sample
-  designs.ts               # room designs
+  designs.ts               # colour designs
+  places.ts                # places (studio, coffee shop, park, shop) and their objects
   store.ts                 # Firestore (or .data/ locally)
   cv-store.ts              # reserved and published CVs
   draft-store.ts           # saved editor drafts, one per account

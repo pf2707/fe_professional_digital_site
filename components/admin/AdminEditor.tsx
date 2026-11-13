@@ -10,9 +10,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, useUser } from "@/components/auth/AuthProvider";
+import { BackButton } from "@/components/BackButton";
 import { DesignSwatch } from "@/components/scene/DesignPicker";
 import { validateCv } from "@/lib/cv-validate";
 import { DESIGNS, designById } from "@/lib/designs";
+import { hintIn, lookName, PLACES, placeById } from "@/lib/places";
 import { blankCv, cleanCv, loadDraft, loadFromCloud, saveDraft, saveToCloud } from "@/lib/draft";
 import { draftProblem } from "@/lib/cv-validate";
 import { CONTACT } from "@/lib/business";
@@ -35,14 +37,15 @@ const TABS = [
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
 
-const SECTION_NAMES: Record<SectionId, string> = {
-  work: "Monitor (live projects)",
-  stack: "Server rack (skills)",
-  certs: "Certificate wall",
-  career: "Corkboard (career)",
-  archive: "Filing cabinet (archive)",
-  about: "Reading corner (about)",
-  twin: "Hologram (digital twin)",
+// What each section holds; the object it's on depends on the place.
+const SECTION_WHAT: Record<SectionId, string> = {
+  work: "live projects",
+  stack: "skills",
+  certs: "certificates",
+  career: "career",
+  archive: "archive",
+  about: "about",
+  twin: "digital twin",
 };
 
 export function AdminEditor() {
@@ -154,6 +157,7 @@ export function AdminEditor() {
 
   const p = content.profile;
   const k = content.knowledge;
+  const place = placeById(p.studio.place);
   const setP = (fn: (draft: Profile) => void) =>
     setContent((c) => {
       const n = structuredClone(c!);
@@ -184,6 +188,13 @@ export function AdminEditor() {
           {statusText}
         </p>
         <div className="admin-actions">
+          <BackButton
+            fallback="/scene"
+            className="ghost"
+            confirm={() => !dirty || window.confirm("Your changes aren't saved to your account yet. They stay in this browser as a draft. Leave the editor?")}
+          >
+            Cancel
+          </BackButton>
           <button type="button" className="ghost" onClick={startOver}>
             Start over
           </button>
@@ -426,9 +437,26 @@ export function AdminEditor() {
         {tab === "studio" && (
           <>
             <h2>3D studio</h2>
-            <p className="admin-lede">How the room looks, the words on its objects, and the panel each object opens.</p>
+            <p className="admin-lede">Where your CV lives, its colours, the words on its objects, and the panel each object opens.</p>
             <div className="f">
-              <span className="f-label">Room design</span>
+              <span className="f-label">Place</span>
+              <div className="design-choices">
+                {PLACES.map((pl) => (
+                  <button
+                    key={pl.id}
+                    type="button"
+                    className={place.id === pl.id ? "on" : ""}
+                    aria-pressed={place.id === pl.id}
+                    onClick={() => setP((x) => void (x.studio.place = pl.id))}
+                  >
+                    <strong>{pl.name}</strong>
+                    <span>{pl.blurb}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="f">
+              <span className="f-label">Colours</span>
               <div className="design-choices">
                 {DESIGNS.map((d) => (
                   <button
@@ -439,7 +467,7 @@ export function AdminEditor() {
                     onClick={() => setP((x) => void (x.studio.design = d.id))}
                   >
                     <DesignSwatch design={d} />
-                    <strong>{d.name}</strong>
+                    <strong>{lookName(place, d)}</strong>
                     <span>{d.blurb}</span>
                   </button>
                 ))}
@@ -451,13 +479,17 @@ export function AdminEditor() {
               rows={3}
               value={p.studio.neon}
               onChange={(v) => setP((d) => void (d.studio.neon = v))}
-              hint="Above the certificates. Each line here is one line on the sign. The text shrinks to fit the longest line, so 2–3 lines of up to about 45 characters read best."
+              hint="The glowing sign on the wall. Each line here is one line on the sign. The text shrinks to fit the longest line, so 2–3 lines of up to about 45 characters read best."
             />
             <Lines
               label="Monitor terminal"
               value={p.studio.terminal}
               onChange={(v) => setP((d) => void (d.studio.terminal = v))}
-              hint="Typed out line by line on the monitor. Start a line with $ for a command; add ✓ to highlight it."
+              hint={
+                place.id === "room"
+                  ? "Typed out line by line on the monitor. Start a line with $ for a command; add ✓ to highlight it."
+                  : `Only the studio has a monitor. In the ${place.noun}, ${place.objects.work.toLowerCase()} lists your live projects instead.`
+              }
               rows={8}
               mono
             />
@@ -465,7 +497,7 @@ export function AdminEditor() {
               {[0, 1, 2, 3].map((i) => (
                 <Text
                   key={i}
-                  label={`Cabinet drawer ${i + 1}`}
+                  label={`${place.drawer} ${i + 1}`}
                   value={p.studio.drawers[i] ?? ""}
                   onChange={(v) =>
                     setP((d) => {
@@ -477,19 +509,26 @@ export function AdminEditor() {
                 />
               ))}
             </div>
-            {(Object.keys(SECTION_NAMES) as SectionId[]).map((id) => {
+            {(Object.keys(SECTION_WHAT) as SectionId[]).map((id) => {
               const s = p.studio.sections[id];
               const set = (patch: Partial<typeof s>) => setP((d) => void (d.studio.sections[id] = { ...d.studio.sections[id], ...patch }));
               const hasPanelCopy = id !== "about" && id !== "twin";
               return (
                 <section key={id} className="list">
                   <div className="list-head">
-                    <h3>{SECTION_NAMES[id]}</h3>
+                    <h3>
+                      {place.objects[id]} ({SECTION_WHAT[id]})
+                    </h3>
                   </div>
                   <div className="card-body plain">
                     <div className="grid2">
                       <Text label="Dock button" value={s.label} onChange={(v) => set({ label: v })} />
-                      <Text label="Hover label" value={s.hint} onChange={(v) => set({ hint: v })} />
+                      <Text
+                        label="Hover label"
+                        value={s.hint}
+                        onChange={(v) => set({ hint: v })}
+                        hint={place.id === "room" ? undefined : `Shown as “${hintIn(place, id, s.hint)}”`}
+                      />
                     </div>
                     {hasPanelCopy && (
                       <>
