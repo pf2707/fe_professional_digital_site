@@ -47,6 +47,7 @@ export type Profile = {
   available: boolean;
   location: string;
   email: string;
+  phone: string; // the telephone on the cabinet dials this; "" hides it
   languages: string;
   stats: Stat[];
   about: string[];

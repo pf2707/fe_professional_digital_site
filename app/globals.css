@@ -280,8 +280,21 @@ button {
 
 @media (min-width: 821px) {
   .studio.has-panel .dock,
-  .studio.is-focused:not(.has-panel) .dock {
+  .studio.is-focused:not(.has-panel):not(.is-motto) .dock {
     transform: translateX(calc(-50% - 230px));
+  }
+}
+
+/* Close-up of the neon sign */
+.motto-back {
+  position: absolute;
+  left: 50%;
+  bottom: 92px;
+  transform: translateX(-50%);
+}
+@media (max-width: 820px) {
+  .motto-back {
+    bottom: 24px;
   }
 }
 
@@ -617,6 +630,22 @@ button {
 }
 .btn-solid:hover {
   background: #2d3750;
+}
+.btn-ghost {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  height: 46px;
+  padding: 0 20px;
+  border-radius: 12px;
+  border: 1.5px solid var(--ink);
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 15px;
+  text-decoration: none;
+}
+.btn-ghost:hover {
+  background: rgba(29, 36, 51, 0.06);
 }
 .socials-row {
   display: flex;

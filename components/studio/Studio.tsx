@@ -63,7 +63,9 @@ export function Studio() {
   }, [close, select]);
 
   return (
-    <div className={`studio ${active ? "is-focused" : ""} ${active && active !== "twin" ? "has-panel" : ""}`}>
+    <div
+      className={`studio ${active ? "is-focused" : ""} ${active && active !== "twin" && active !== "motto" ? "has-panel" : ""} ${active === "motto" ? "is-motto" : ""}`}
+    >
       <h1 className="sr-only">
         {profile.name}, {profile.title}. Interactive 3D CV.
       </h1>
@@ -132,6 +134,12 @@ export function Studio() {
           </button>
         ))}
       </nav>
+
+      {active === "motto" && (
+        <button className="hud-link motto-back" onClick={close}>
+          Back to the room
+        </button>
+      )}
 
       <Panel active={active} onClose={close} onSelect={select} />
 

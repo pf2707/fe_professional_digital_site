@@ -8,6 +8,7 @@
   "available": true,
   "location": "City, Country",
   "email": "you@example.com",
+  "phone": "",
   "languages": "English",
   "stats": [
     { "value": "5+", "label": "Years Experience" },

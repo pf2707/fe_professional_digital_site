@@ -7,6 +7,7 @@
   "available": true,
   "location": "Ho Chi Minh City, Vietnam",
   "email": "pf2707@gmail.com",
+  "phone": "+84 77 303 6794",
   "languages": "EN / VI / 中文",
   "stats": [
     {
@@ -353,7 +354,7 @@
     }
   ],
   "studio": {
-    "neon": "build · deploy · repeat",
+    "neon": "Hire me, men!",
     "terminal": [
       "$ claude --agents fde-team",
       "› discovery   reading client brief…",

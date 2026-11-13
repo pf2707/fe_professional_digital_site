@@ -7,12 +7,13 @@
 
 import { profile, type SectionId } from "@/lib/profile";
 
-export type HotspotId = SectionId;
+// "motto" is the neon sign: clickable for a close-up, but not a CV section.
+export type HotspotId = SectionId | "motto";
 
 export type Vec3 = [number, number, number];
 
 export type Hotspot = {
-  id: HotspotId;
+  id: SectionId;
   label: string; // dock + hover label (from data/profile.json)
   hint: string; // what the object is, shown on hover (from data/profile.json)
   camera: Vec3;
@@ -62,6 +63,14 @@ export const HOTSPOTS: Hotspot[] = VIEWS.map((v) => ({
   label: profile.studio.sections[v.id].label,
   hint: profile.studio.sections[v.id].hint,
 }));
+
+// The neon sign over the certificates. Clicking it flies in to read it; it has
+// no panel and isn't in the dock. The camera frames `size` metres of wall.
+export const MOTTO = {
+  hint: "The sign — click to read it",
+  center: [-3.96, 3.62, -0.65] as Vec3,
+  size: [4.2, 1.1] as [number, number],
+};
 
 // Overview: the isometric-ish establishing shot of the whole room.
 export const HOME_VIEW = {

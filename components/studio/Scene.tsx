@@ -5,7 +5,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, Lightformer } from "@react-three/drei";
 import { Bloom, EffectComposer, Vignette } from "@react-three/postprocessing";
 import * as THREE from "three";
-import { HOME_VIEW, HOTSPOTS, INTRO_VIEW } from "./hotspots";
+import { HOME_VIEW, HOTSPOTS, INTRO_VIEW, MOTTO } from "./hotspots";
 import { Room, type RoomProps } from "./Room";
 
 const UP = new THREE.Vector3(0, 1, 0);
@@ -30,7 +30,13 @@ function CameraRig({ active, calm }: Pick<RoomProps, "active" | "calm">) {
     const narrow = size.width < 820;
     const spot = HOTSPOTS.find((h) => h.id === active);
 
-    if (spot) {
+    if (active === "motto") {
+      // Square on to the sign, far enough back that it fills ~85% of the width.
+      const span = 2 * Math.tan(THREE.MathUtils.degToRad((camera as THREE.PerspectiveCamera).fov / 2));
+      const dist = Math.max((MOTTO.size[1] * 1.8) / span, (MOTTO.size[0] * 1.18) / (span * aspect));
+      goalLook.current.set(...MOTTO.center);
+      goalPos.current.set(MOTTO.center[0] + dist, MOTTO.center[1] - 0.15, MOTTO.center[2]);
+    } else if (spot) {
       goalPos.current.set(...spot.camera);
       goalLook.current.set(...spot.target);
       // Close-up views are authored tight; frame them with some breathing room.

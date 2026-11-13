@@ -35,7 +35,7 @@ export function Text({
   multiline?: boolean;
   rows?: number;
   placeholder?: string;
-  type?: "text" | "email" | "url" | "date";
+  type?: "text" | "email" | "tel" | "url" | "date";
   mono?: boolean;
 }) {
   const id = useId();

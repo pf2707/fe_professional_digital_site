@@ -42,6 +42,8 @@ function clean(c: Content): Content {
   const nonEmpty = (a: string[]) => a.map((s) => s.trim()).filter(Boolean);
   n.profile.about = nonEmpty(n.profile.about);
   n.profile.studio.terminal = n.profile.studio.terminal.filter((s) => s.trim());
+  n.profile.studio.neon = nonEmpty(n.profile.studio.neon.split("\n")).join("\n");
+  n.profile.phone = (n.profile.phone ?? "").trim();
   n.profile.twin.suggestions = nonEmpty(n.profile.twin.suggestions);
   n.profile.skills = n.profile.skills.map((g) => ({ ...g, items: nonEmpty(g.items) }));
   n.profile.certificates = n.profile.certificates.map((cert) => {
@@ -214,7 +216,17 @@ export function AdminEditor() {
               <Text label="Location" value={p.location} onChange={(v) => setP((d) => void (d.location = v))} />
               <Text label="Email" type="email" value={p.email} onChange={(v) => setP((d) => void (d.email = v))} />
             </div>
-            <Text label="Languages" value={p.languages} onChange={(v) => setP((d) => void (d.languages = v))} />
+            <div className="grid2">
+              <Text
+                label="Phone"
+                type="tel"
+                value={p.phone ?? ""}
+                onChange={(v) => setP((d) => void (d.phone = v))}
+                placeholder="+84 90 123 4567"
+                hint="The telephone on the cabinet and the About panel call this. Leave empty to hide the phone."
+              />
+              <Text label="Languages" value={p.languages} onChange={(v) => setP((d) => void (d.languages = v))} />
+            </div>
             <Toggle label="Open to new opportunities" checked={p.available} onChange={(v) => setP((d) => void (d.available = v))} />
             <List
               label="Stats"
@@ -406,7 +418,14 @@ export function AdminEditor() {
           <>
             <h2>3D studio</h2>
             <p className="admin-lede">The words that appear on objects in the room, and the panel each object opens.</p>
-            <Text label="Neon sign" value={p.studio.neon} onChange={(v) => setP((d) => void (d.studio.neon = v))} hint="Above the certificates. Keep it under about 25 characters." />
+            <Text
+              label="Neon sign"
+              multiline
+              rows={3}
+              value={p.studio.neon}
+              onChange={(v) => setP((d) => void (d.studio.neon = v))}
+              hint="Above the certificates. Each line here is one line on the sign. The text shrinks to fit the longest line, so 2–3 lines of up to about 45 characters read best."
+            />
             <Lines
               label="Monitor terminal"
               value={p.studio.terminal}
