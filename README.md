@@ -21,7 +21,7 @@ publish it. Built with Next.js (App Router), React Three Fiber, Firestore and Op
 
 | Path | What it is |
 |---|---|
-| `/` | Placeholder for the landing page |
+| `/` | Landing page: the live sample room as the headline image, a big button into `/scene` |
 | `/scene` | The sample CV (`data/profile.json`), with a rail to try each room design |
 | `/cv` | The sample CV as plain text |
 | `/login`, `/register` | Sign in or create an account (email and password, or Google) |
@@ -151,7 +151,7 @@ Vercel project's environment variables.
 
 ```
 app/
-  page.tsx                 # landing placeholder
+  page.tsx                 # landing page
   scene/page.tsx           # sample CV + design rail
   cv/page.tsx              # sample CV as text
   scene/[slug]/page.tsx    # a published CV
@@ -167,6 +167,7 @@ components/
   scene/                   # design rail
   admin/                   # editor, preview, publish flow, form fields
   auth/                    # sign-in state, login/register form, RequireAuth
+  landing/                 # the landing page's live 3D room (HeroRoom)
   cv/                      # text CV, pending page
   DigitalTwin.tsx          # chat panel
 lib/

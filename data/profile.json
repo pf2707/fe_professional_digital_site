@@ -355,7 +355,7 @@
   ],
   "studio": {
     "design": "studio",
-    "neon": "Hire me, men!",
+    "neon": "LLMs generate plausible content.\nAs an AI engineer, I make sure it's accurate\nand take responsibility for the product.",
     "terminal": [
       "$ claude --agents fde-team",
       "› discovery   reading client brief…",

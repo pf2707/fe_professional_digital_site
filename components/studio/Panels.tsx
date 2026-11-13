@@ -204,21 +204,24 @@ export function Panel({
   active,
   onClose,
   onSelect,
+  passive = false,
 }: {
   active: HotspotId | null;
   onClose: () => void;
   onSelect: (id: HotspotId) => void;
+  // Display only (the landing page's tour): no focus, no close or next buttons.
+  passive?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const open = active !== null && active !== "twin" && active !== "motto";
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || passive) return;
     ref.current?.scrollTo({ top: 0 });
     const heading = ref.current?.querySelector<HTMLElement>("h2");
     heading?.setAttribute("tabindex", "-1");
     heading?.focus({ preventScroll: true });
-  }, [active, open]);
+  }, [active, open, passive]);
 
   const hotspots = useHotspots();
   const index = hotspots.findIndex((h) => h.id === active);
@@ -227,19 +230,26 @@ export function Panel({
   const Body = open ? CONTENT[active as PanelId] : null;
 
   return (
-    <aside className={`panel ${open ? "open" : ""}`} aria-hidden={!open} aria-label="Section details">
+    <aside
+      className={`panel ${open ? "open" : ""}`}
+      aria-hidden={!open || passive}
+      inert={passive}
+      aria-label="Section details"
+    >
       <div className="panel-scroll" ref={ref}>
-        <button className="panel-close" onClick={onClose} aria-label="Back to the room">
-          <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden>
-            <path d="M4 4l10 10M14 4L4 14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          </svg>
-        </button>
+        {!passive && (
+          <button className="panel-close" onClick={onClose} aria-label="Back to the room">
+            <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden>
+              <path d="M4 4l10 10M14 4L4 14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+          </button>
+        )}
         {Body && (
           <div className="panel-body" key={active}>
             <Body />
           </div>
         )}
-        {open && (
+        {open && !passive && (
           <div className="panel-nav">
             <button onClick={() => onSelect(prev.id)}>← {prev.label}</button>
             <button onClick={() => onSelect(next.id)}>{next.label} →</button>

@@ -13,7 +13,9 @@ const UP = new THREE.Vector3(0, 1, 0);
 
 // Flies between the overview and each hotspot's close-up. Damped every frame,
 // so a new selection mid-flight just bends the path instead of restarting it.
-function CameraRig({ active, calm }: Pick<RoomProps, "active" | "calm">) {
+// `showcase` (the landing page): the room drifts slowly on its own and sits to
+// the right of the headline, or above it on phones.
+function CameraRig({ active, calm, showcase }: Pick<RoomProps, "active" | "calm"> & { showcase?: boolean }) {
   const { camera, size, pointer } = useThree();
   const look = useRef(new THREE.Vector3(...(calm ? HOME_VIEW.target : INTRO_VIEW.target)));
   const started = useRef(false);
@@ -26,7 +28,7 @@ function CameraRig({ active, calm }: Pick<RoomProps, "active" | "calm">) {
     started.current = true;
   }
 
-  useFrame((_, dt) => {
+  useFrame((state, dt) => {
     const aspect = size.width / size.height;
     const narrow = size.width < 820;
     const spot = VIEWS.find((h) => h.id === active);
@@ -48,6 +50,12 @@ function CameraRig({ active, calm }: Pick<RoomProps, "active" | "calm">) {
         // object sits in the top half of the screen.
         goalPos.current.addScaledVector(dir.normalize(), -1.2);
         goalLook.current.y -= 0.55;
+      } else if (showcase) {
+        // The landing copy covers the left. From 1200px the object's panel
+        // covers the right too (see .hero .panel), so the object sits between
+        // them; on narrower screens it sits on the right.
+        const right = dir.normalize().cross(UP).normalize();
+        goalLook.current.addScaledVector(right, size.width >= 1200 ? -0.25 : -1.1);
       } else {
         // Side panel covers the right: aim to the right so the object sits left.
         const right = dir.normalize().cross(UP).normalize();
@@ -59,7 +67,22 @@ function CameraRig({ active, calm }: Pick<RoomProps, "active" | "calm">) {
       // Fit the whole room on portrait screens.
       const fit = aspect < 1.25 ? Math.min(2.7, 1.25 / aspect) : 1;
       goalPos.current.sub(goalLook.current).multiplyScalar(fit).add(goalLook.current);
-      if (!calm) {
+      if (showcase) {
+        // Swing slowly around the room, then frame it beside (or above) the copy.
+        if (!calm) {
+          const yaw = Math.sin(state.clock.elapsedTime * 0.14) * 0.3;
+          goalPos.current.sub(goalLook.current).applyAxisAngle(UP, yaw).add(goalLook.current);
+        }
+        const dir = goalLook.current.clone().sub(goalPos.current).normalize();
+        if (narrow) {
+          goalPos.current.addScaledVector(dir, -4);
+          goalLook.current.y -= 3.3;
+        } else {
+          // Squarer windows leave less room beside the copy: step further back.
+          goalPos.current.addScaledVector(dir, -(3.5 + Math.max(0, 1.6 - aspect) * 9));
+          goalLook.current.addScaledVector(dir.cross(UP).normalize(), -3);
+        }
+      } else if (!calm) {
         goalPos.current.x += pointer.x * 0.8;
         goalPos.current.y += pointer.y * 0.5;
       }
@@ -78,8 +101,8 @@ function CameraRig({ active, calm }: Pick<RoomProps, "active" | "calm">) {
   return null;
 }
 
-export default function Scene(props: RoomProps & { onReady: () => void }) {
-  const { onReady, ...room } = props;
+export default function Scene(props: RoomProps & { onReady: () => void; showcase?: boolean; paused?: boolean }) {
+  const { onReady, showcase, paused, ...room } = props;
   const { palette } = useStudioData().design;
   return (
     <Canvas
@@ -87,6 +110,7 @@ export default function Scene(props: RoomProps & { onReady: () => void }) {
       dpr={[1, 1.75]}
       camera={{ fov: 32, near: 0.1, far: 120 }}
       gl={{ antialias: true, powerPreference: "high-performance" }}
+      frameloop={paused ? "never" : "always"}
       onCreated={() => onReady()}
       onPointerMissed={() => room.setHovered(null)}
     >
@@ -102,7 +126,7 @@ export default function Scene(props: RoomProps & { onReady: () => void }) {
           <Vignette eskil={false} offset={0.25} darkness={room.night ? 0.65 : 0.35} />
         </EffectComposer>
       </Suspense>
-      <CameraRig active={room.active} calm={room.calm} />
+      <CameraRig active={room.active} calm={room.calm} showcase={showcase} />
     </Canvas>
   );
 }

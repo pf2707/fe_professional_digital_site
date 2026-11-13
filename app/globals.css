@@ -1258,3 +1258,291 @@ body:has(.review-bar) .doc {
     top: 104px;
   }
 }
+
+/* ─────────────────────────── Landing page (/) ───────────────────────────
+   The live room is the headline image; the copy sits beside it (above it on
+   phones). The sky crossfades as the room changes design. */
+@property --hero-sky-1 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #0f1b33;
+}
+@property --hero-sky-2 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #241f45;
+}
+@property --hero-sky-3 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #46304f;
+}
+
+body:has(.landing) {
+  background: var(--paper);
+}
+.hero {
+  position: relative;
+  min-height: 100svh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  overflow: hidden;
+  color: #ece6da;
+  isolation: isolate;
+}
+.hero-room {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(110% 80% at 72% 18%, var(--hero-sky-2) 0%, transparent 62%),
+    linear-gradient(180deg, var(--hero-sky-1) 0%, var(--hero-sky-2) 55%, var(--hero-sky-3) 100%);
+  transition:
+    --hero-sky-1 1.6s ease,
+    --hero-sky-2 1.6s ease,
+    --hero-sky-3 1.6s ease;
+}
+/* Keeps the copy readable over the room. */
+.hero-room::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(10, 14, 28, 0.72) 0%, rgba(10, 14, 28, 0.35) 38%, transparent 60%);
+  pointer-events: none;
+}
+.hero-canvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.4s var(--ease);
+}
+.hero-room.is-ready .hero-canvas {
+  opacity: 1;
+}
+.hero-design {
+  position: absolute;
+  right: 28px;
+  bottom: 26px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: rgba(236, 230, 218, 0.75);
+}
+
+.hero-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px clamp(20px, 5vw, 64px);
+}
+.hero-brand {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: -0.01em;
+  color: inherit;
+  text-decoration: none;
+}
+.hero-signin {
+  font-size: 15px;
+  color: inherit;
+  text-underline-offset: 4px;
+}
+
+.hero-copy {
+  align-self: center;
+  display: grid;
+  justify-items: start;
+  max-width: min(600px, 48vw);
+  padding: 0 clamp(20px, 5vw, 64px) 72px;
+}
+.hero-copy h1 {
+  font-family: var(--display);
+  font-size: clamp(48px, 6.6vw, 104px);
+  font-weight: 800;
+  font-stretch: 82%;
+  font-variation-settings: "wdth" 82, "opsz" 96;
+  line-height: 0.94;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+.hero-copy p {
+  max-width: 44ch;
+  margin-top: 24px;
+  font-size: clamp(16px, 1.35vw, 19px);
+  line-height: 1.55;
+  color: rgba(236, 230, 218, 0.86);
+}
+.hero-cta {
+  display: inline-flex;
+  align-items: center;
+  height: 68px;
+  margin-top: 36px;
+  padding: 0 36px;
+  border-radius: 18px;
+  background: var(--amber);
+  color: #2b1a05;
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  box-shadow: 0 0 0 0 rgba(245, 169, 69, 0.5);
+  transition:
+    transform 0.25s var(--ease),
+    box-shadow 0.25s var(--ease),
+    background 0.2s;
+}
+.hero-cta:hover {
+  background: #f7b862;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 40px -8px rgba(245, 169, 69, 0.65);
+}
+.hero-make {
+  margin-top: 18px;
+  font-size: 15px;
+  color: #ece6da;
+  text-underline-offset: 4px;
+}
+
+.steps {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: clamp(64px, 10vw, 120px) clamp(20px, 5vw, 64px) 72px;
+  color: var(--ink);
+}
+.steps h2 {
+  max-width: 18ch;
+  font-family: var(--display);
+  font-size: clamp(32px, 4.4vw, 56px);
+  font-weight: 800;
+  font-stretch: 85%;
+  font-variation-settings: "wdth" 85;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+.steps ol {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(24px, 4vw, 56px);
+  margin-top: 48px;
+  list-style: none;
+  counter-reset: step;
+}
+.steps li {
+  counter-increment: step;
+  padding-top: 18px;
+  border-top: 2px solid var(--ink);
+}
+.steps li::before {
+  content: counter(step);
+  display: block;
+  margin-bottom: 14px;
+  font-family: var(--display);
+  font-size: 40px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--amber-ink);
+}
+.steps h3 {
+  font-family: var(--display);
+  font-size: 21px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.steps p {
+  color: var(--ink-dim);
+  max-width: 36ch;
+}
+.steps code {
+  font-size: 0.92em;
+  color: var(--ink);
+}
+.steps-cta {
+  display: inline-flex;
+  align-items: center;
+  height: 54px;
+  margin-top: 56px;
+  padding: 0 26px;
+  border-radius: 14px;
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 600;
+  font-size: 16px;
+  text-decoration: none;
+}
+.steps-cta:hover {
+  background: #2d3750;
+}
+
+/* The tour's close-ups show the object's panel, as in /scene, when there's room
+   for it beside the copy. Display only: it can't be scrolled or clicked. */
+.hero .panel {
+  top: 84px;
+  right: clamp(20px, 3vw, 48px);
+  bottom: 28px;
+  width: min(420px, 30vw);
+  z-index: 2;
+}
+.hero .panel-scroll {
+  overflow: hidden;
+  mask-image: linear-gradient(180deg, #000 82%, transparent);
+}
+.hero-design {
+  transition: opacity 0.4s;
+}
+.hero-room.is-close .hero-design {
+  opacity: 0;
+}
+@media (max-width: 1199px) {
+  .hero .panel {
+    display: none;
+  }
+  .hero-room.is-close .hero-design {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 820px) {
+  .hero {
+    grid-template-rows: auto 1fr auto;
+  }
+  .hero-room::after {
+    background: linear-gradient(180deg, transparent 35%, rgba(10, 14, 28, 0.78) 72%);
+  }
+  .hero-copy {
+    grid-row: 3;
+    max-width: none;
+    padding-bottom: 56px;
+  }
+  .hero-copy h1 {
+    font-size: clamp(42px, 12vw, 64px);
+  }
+  .hero-cta {
+    width: 100%;
+    justify-content: center;
+    height: 62px;
+    font-size: 20px;
+  }
+  .hero-make {
+    justify-self: center;
+  }
+  .hero-design {
+    top: 76px;
+    bottom: auto;
+    right: 20px;
+  }
+  .steps ol {
+    grid-template-columns: 1fr;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-room,
+  .hero-canvas,
+  .hero-cta {
+    transition: none;
+  }
+}
