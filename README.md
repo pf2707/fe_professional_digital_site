@@ -1,69 +1,119 @@
-# 3D Studio CV — template
+# 3D Studio CV
 
-An interactive 3D CV: a small studio diorama where every object opens one part of a
+Interactive 3D CVs: a small studio diorama where every object opens one part of a
 person's CV, plus an **AI digital twin** that answers visitors' questions about them.
-Built with Next.js (App Router), React Three Fiber and OpenRouter.
-
-This copy is filled in for **Thai Tran**. It's a template: each person gets their own copy
-and deployment, and everything about them is edited from **`/admin`**.
+Anyone can fill in a CV, reserve an address like `/thai-tran`, and contact the owner to
+publish it. Built with Next.js (App Router), React Three Fiber, Firestore and OpenRouter.
 
 | Object in the room | Opens |
 |---|---|
 | Monitor | Live project groups |
 | Server rack | Skill groups |
 | Framed certificates (first three) | Certificates |
+| Neon sign | A close-up of the slogan |
 | Corkboard | Career timeline |
 | Filing cabinet | Archived skills and project groups |
+| Telephone | Calls the person |
 | Reading corner | About and contact |
-| Hologram (the person's photo) | Digital twin chat |
+| Hologram (the person's photo) | Digital twin chat (if turned on) |
 
-`/cv` is the same content as a plain, printable page for recruiters, search engines and
-browsers without WebGL.
+## Pages
+
+| Path | What it is |
+|---|---|
+| `/` | Placeholder for the landing page |
+| `/scene` | The sample CV (`data/profile.json`), with a rail to try each room design |
+| `/cv` | The sample CV as plain text |
+| `/login`, `/register` | Sign in or create an account (email and password, or Google) |
+| `/scene/admin` | Fill in your CV. Needs an account: signed-out visitors are sent to `/login` first. The preview updates as you type |
+| `/scene/admin/publish` | Choose an address, reserve it, contact us |
+| `/scene/<slug>` | A published CV (once approved) |
+| `/owner` | Site owner only: pending CVs, open each one, approve it |
+| `/scene/<slug>/cv` | That CV as plain text, for recruiters, search engines and browsers without WebGL |
 
 ## Run locally
 
 ```bash
 npm install
-cp .env.local.example .env.local   # set OPENROUTER_API_KEY for the twin
+cp .env.local.example .env.local   # set OPENROUTER_API_KEY, FIREBASE_ADMIN_CREDENTIALS, NEXT_PUBLIC_FIREBASE_*
 npm run dev                        # http://localhost:3000
 ```
 
-## Edit a CV — `/admin`
+Without `FIREBASE_ADMIN_CREDENTIALS`, drafts and CVs are saved as JSON files in `.data/`
+(git-ignored). Signing in always needs the Firebase web app config (`NEXT_PUBLIC_FIREBASE_*`).
 
-Open **http://localhost:3000/admin** while `npm run dev` is running.
+## How publishing works
 
-- Tabs cover basics and photo, about, career, skills, certificates, projects, the words on
-  the 3D objects, and the digital twin (greeting, suggested questions and what it knows).
-- **Save** (or ⌘S / Ctrl+S) writes the content files; the preview pane reloads with the change.
-- Uploaded photos go to `public/uploads/`.
-- **Archived** skill or project groups move from the monitor and rack into the filing cabinet.
+1. A customer creates an account (`/register`, email and password or Google) and fills in
+   their CV at `/scene/admin`: details, photo, room design, and whether the digital twin is on.
+   **Save** (or ⌘S / Ctrl+S) stores it in Firestore as `drafts/<uid>`, so each account has
+   one CV and can edit it from any device. Every API call carries the user's Firebase ID
+   token, which the server verifies (`lib/auth-server.ts`).
+2. **Publish** opens `/scene/admin/publish`. They choose an address (`/scene/thuy-huynh`). It's checked
+   as they type: shape rules and reserved words (`lib/slug.ts`), then the database.
+3. **Contact us to publish** reserves the address and stores the CV with
+   `status: "pending"`, with `ownerUid` and `ownerEmail` so you know whose it is. One
+   address per account. Until you approve it, every Save in the editor
+   updates the pending CV too. Once it's live, saves only update the draft, and the
+   customer is told to contact you. They then email you at the address in
+   `lib/business.ts`. Payment happens outside the website.
+4. You approve it at `/owner` (below), or in the Firebase console by changing `status`
+   in `cvs/<slug>` to `approved`. The CV is live at `/scene/<slug>` straight away.
 
-Content lives in the repo, so **publishing = commit + deploy**:
+### Reviewing and approving at `/owner`
 
-```
-data/profile.json          # everything shown on the site (public)
-data/twin-knowledge.json   # what the twin knows (server only, never sent to the browser)
-data/templates/            # the blank starter used by "Start from blank template"
-public/uploads/            # photos uploaded from /admin
-```
+Sign in at `/owner` with `OWNER_EMAIL` and `OWNER_PASSWORD` from the environment (one
+owner account, separate from customers' Firebase accounts; the session is a signed,
+httpOnly cookie that lasts 12 hours). The page lists every pending CV. Click one to open
+the full 3D CV at `/scene/<slug>`, twin included, with an **Approve** bar on top. The bar's
+**Digital twin** checkbox turns the twin on or off for that CV right away. It's stored as
+`twinEnabled` on `cvs/<slug>`, overrides the customer's own switch, and their later saves
+don't change it.
+Approving puts it live straight away. There's no decline yet: to turn one down, delete
+`cvs/<slug>` in the Firebase console.
 
-On a deployed site `/admin` is **read-only**: the save and upload APIs refuse writes outside
-`npm run dev`. There is no login yet. Add one before allowing edits anywhere else (see
-`TODO(auth)` in `lib/admin-store.ts`).
+The address is the Firestore document ID, so two CVs can never share one: reserving
+uses an atomic create that fails if the document exists.
 
-## Make a CV for someone else
+### Each twin only knows its own CV
 
-1. Copy this repo (or use it as a GitHub template) for the new person.
-2. `npm install && npm run dev`, open `/admin`, click **Start from blank template**.
-3. Fill in every tab, upload their photo, paste their CV/LinkedIn into
-   **Digital twin → Sources**, and **Save**.
-4. Delete the previous person's photos from `public/` and `public/uploads/`.
-5. Commit and deploy with their own `OPENROUTER_API_KEY`.
+The chat sends the CV's slug. The server loads that one CV and builds the twin's
+instructions from its knowledge alone, with a rule to decline questions about anyone
+else. Nothing from other CVs is ever in the prompt. A pending CV, or one with the twin
+turned off, gets no answers (except to the signed-in site owner reviewing it).
 
-## Refresh Thai's twin knowledge from `digital_twin`
+### The twin is premium
 
-When the source files in the sibling `digital_twin` project change, regenerate the knowledge
-file (or paste the new text into **/admin → Digital twin**):
+The editor says so under the twin switch. In the editor's preview, the twin answers
+2 questions from the knowledge being edited (signed-in users only, checked on the server
+too); the third gets "This is a premium feature… contact us". The count is per chat, so
+reloading the preview starts a new trial. `lib/premium.ts` holds the limit and the wording.
+
+## Firebase setup
+
+1. Create a Firebase project and a Firestore database.
+2. Deploy `firestore.rules`. It blocks all browser access, because only the server reads and
+   writes CVs, through the Admin SDK.
+3. Project settings → Service accounts → Generate new private key. Put the whole JSON in
+   `FIREBASE_ADMIN_CREDENTIALS`, on one line, in single quotes.
+4. Project settings → General → Your apps → add a **Web** app. Copy `apiKey`, `authDomain`,
+   `projectId` and `appId` into the `NEXT_PUBLIC_FIREBASE_*` variables.
+5. Authentication → Sign-in method: enable **Email/Password** and **Google**. Under
+   Settings → Authorized domains, add your production domain (localhost is there already).
+
+Collections: `drafts` (one per account, keyed by uid) and `cvs` (reserved and published CVs, keyed
+by address).
+
+## Room designs
+
+`lib/designs.ts` holds the designs: Night studio, Sakura loft, Cyber den and Forest cabin.
+Each one is a palette for the same room plus the sky behind it. To add a design, add an
+entry; it appears on `/scene` and in `/scene/admin → 3D studio`.
+
+## Refresh the sample twin's knowledge from `digital_twin`
+
+`/scene` shows Thai's CV as the sample. When the source files in the sibling
+`digital_twin` project change, regenerate its knowledge file:
 
 ```bash
 cd ../digital_twin && .venv/bin/python -c "
@@ -94,27 +144,46 @@ print('updated knowledge')
 npx vercel --prod
 ```
 
-Set `OPENROUTER_API_KEY` in the Vercel project's environment variables.
+Set `OPENROUTER_API_KEY`, `FIREBASE_ADMIN_CREDENTIALS`, `NEXT_PUBLIC_FIREBASE_*`, `OWNER_EMAIL` and `OWNER_PASSWORD` in the
+Vercel project's environment variables.
 
 ## Project structure
 
 ```
 app/
-  page.tsx               # the 3D studio
-  cv/page.tsx            # plain text CV
-  admin/                 # the editor (page + styles)
-  api/chat/route.ts      # streaming twin endpoint (OpenRouter + Gemini)
-  api/admin/             # read/save content, upload photos (dev only)
+  page.tsx                 # landing placeholder
+  scene/page.tsx           # sample CV + design rail
+  cv/page.tsx              # sample CV as text
+  scene/[slug]/page.tsx    # a published CV
+  scene/[slug]/cv/page.tsx # a published CV as text
+  scene/admin/             # editor, live preview, publish page (signed in)
+  api/chat/route.ts        # streaming twin endpoint, scoped to one CV by slug
+  api/publish/route.ts     # check an address; reserve it with a pending CV
+  (auth)/                  # /login and /register
+  api/drafts/route.ts      # load and save the signed-in user's draft
 components/
-  studio/                # 3D room: Scene (camera, effects), Room (objects),
-                         # Panels (HTML panels), hotspots (camera views), textures
-  admin/                 # editor UI and form fields
-  DigitalTwin.tsx        # chat panel
+  studio/                  # 3D room: Studio, Scene, Room, Panels, hotspots, textures,
+                           # StudioData (which CV the studio is showing)
+  scene/                   # design rail
+  admin/                   # editor, preview, publish flow, form fields
+  auth/                    # sign-in state, login/register form, RequireAuth
+  cv/                      # text CV, pending page
+  DigitalTwin.tsx          # chat panel
 lib/
-  profile.ts             # content types + loader for data/profile.json
-  twin.ts                # twin model + system prompt built from data/twin-knowledge.json
-  admin-store.ts         # file read/write + validation for /admin
-data/                    # the content (see above)
+  profile.ts               # CV types + the sample
+  designs.ts               # room designs
+  store.ts                 # Firestore (or .data/ locally)
+  cv-store.ts              # reserved and published CVs
+  draft-store.ts           # saved editor drafts, one per account
+  auth-server.ts           # verifies the caller's Firebase ID token
+  firebase-client.ts       # Firebase Auth in the browser
+  cv-validate.ts           # shape check before publishing
+  slug.ts                  # address rules
+  twin.ts                  # twin model + per-CV system prompt
+  draft.ts                 # the editor's working copy and Save
+  business.ts              # contact details on the publish page
+data/                      # the sample CV + the blank template
+firestore.rules            # no direct browser access
 ```
 
 ## Security note

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { AdminEditor } from "@/components/admin/AdminEditor";
-import "./admin.css";
 
 export const metadata: Metadata = {
   title: "Edit CV",

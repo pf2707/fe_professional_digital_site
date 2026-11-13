@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
-//  Website content. The data itself lives in data/profile.json and is edited
-//  from /admin (run `npm run dev`). The AI digital twin's private knowledge is
-//  separate: data/twin-knowledge.json, read on the server only (lib/twin.ts).
+//  The shape of one CV. Published CVs live in the database (lib/cv-store.ts);
+//  the sample shown on /scene is data/profile.json. Each CV's digital twin
+//  knowledge is separate and only ever read on the server (lib/twin.ts).
 // ─────────────────────────────────────────────────────────────────────────────
 
 import data from "@/data/profile.json";
@@ -40,7 +40,7 @@ export type SectionCopy = {
 export type Profile = {
   name: string;
   initials: string;
-  avatar: string; // path in public/, or "" for initials
+  avatar: string; // a path in public/ or a data: URL, or "" for initials
   title: string;
   subtitle: string; // under the name in the studio header
   tagline: string;
@@ -58,18 +58,34 @@ export type Profile = {
   projects: Project[];
   socials: Social[];
   studio: {
-    neon: string; // the neon sign above the certificates
+    design?: string; // a room design id from lib/designs.ts
+    neon: string; // the neon sign above the certificates; one line per row
     terminal: string[]; // lines typed on the monitor
     drawers: string[]; // filing cabinet drawer labels, top to bottom
     sections: Record<SectionId, SectionCopy>;
   };
   twin: {
+    enabled?: boolean; // false hides the hologram and the chat
     greeting: string;
     suggestions: string[];
   };
 };
 
-export const profile = data as Profile;
+// Edited in /scene/scene/admin → Digital twin. `sources` are free-form documents (CV,
+// LinkedIn export, project lists…); `rules` are extra person-specific instructions.
+export type TwinKnowledge = {
+  currentGoal: string;
+  summary: string;
+  sources: { title: string; content: string }[];
+  rules: string;
+};
 
-export const liveGroups = () => profile.projectGroups.filter((g) => !g.archived);
-export const archivedGroups = () => profile.projectGroups.filter((g) => g.archived);
+// Everything a CV is made of: the public profile + the twin's private knowledge.
+export type CvContent = { profile: Profile; knowledge: TwinKnowledge };
+
+// The sample CV on /scene and /cv.
+export const sampleProfile = data as Profile;
+
+export const liveGroups = (p: Profile) => p.projectGroups.filter((g) => !g.archived);
+export const archivedGroups = (p: Profile) => p.projectGroups.filter((g) => g.archived);
+export const twinEnabled = (p: Profile) => p.twin.enabled !== false;

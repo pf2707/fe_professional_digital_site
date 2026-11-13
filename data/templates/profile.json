@@ -61,6 +61,7 @@
     { "label": "@", "title": "Email", "href": "mailto:you@example.com" }
   ],
   "studio": {
+    "design": "studio",
     "neon": "make · ship · learn",
     "terminal": [
       "$ git pull",
@@ -82,6 +83,7 @@
     }
   },
   "twin": {
+    "enabled": true,
     "greeting": "👋 Hi! I'm Alex's digital twin. Ask me anything about Alex's career, skills, or projects.",
     "suggestions": [
       "What are you working on now?",

@@ -2,16 +2,15 @@
 
 import { useEffect, useRef } from "react";
 import Image from "next/image";
-import { archivedGroups, liveGroups, profile, type ProjectGroup } from "@/lib/profile";
-import { HOTSPOTS, type HotspotId } from "./hotspots";
+import { archivedGroups, liveGroups, type ProjectGroup, type SectionId } from "@/lib/profile";
+import type { HotspotId } from "./hotspots";
+import { useHotspots, useStudioData } from "./StudioData";
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
-const copy = (id: keyof typeof profile.studio.sections) => profile.studio.sections[id];
-
-function Intro({ id }: { id: keyof typeof profile.studio.sections }) {
-  const { title, lede } = copy(id);
+function Intro({ id }: { id: SectionId }) {
+  const { title, lede } = useStudioData().profile.studio.sections[id];
   return (
     <>
       <h2>{title}</h2>
@@ -30,6 +29,7 @@ function Groups({ groups }: { groups: ProjectGroup[] }) {
 }
 
 function ProjectList({ category }: { category: string }) {
+  const { profile } = useStudioData();
   return (
     <ul className="p-list">
       {profile.projects
@@ -50,15 +50,17 @@ function ProjectList({ category }: { category: string }) {
 }
 
 function Work() {
+  const { profile } = useStudioData();
   return (
     <>
       <Intro id="work" />
-      <Groups groups={liveGroups()} />
+      <Groups groups={liveGroups(profile)} />
     </>
   );
 }
 
 function Stack() {
+  const { profile } = useStudioData();
   const groups = profile.skills.filter((g) => !g.archived);
   return (
     <>
@@ -78,6 +80,7 @@ function Stack() {
 }
 
 function Certs() {
+  const { profile } = useStudioData();
   return (
     <>
       <Intro id="certs" />
@@ -98,6 +101,7 @@ function Certs() {
 }
 
 function Career() {
+  const { profile } = useStudioData();
   return (
     <>
       <Intro id="career" />
@@ -116,6 +120,7 @@ function Career() {
 }
 
 function Archive() {
+  const { profile } = useStudioData();
   const skills = profile.skills.filter((g) => g.archived).flatMap((g) => g.items);
   return (
     <>
@@ -127,12 +132,13 @@ function Archive() {
           ))}
         </div>
       )}
-      <Groups groups={archivedGroups()} />
+      <Groups groups={archivedGroups(profile)} />
     </>
   );
 }
 
 function About() {
+  const { profile } = useStudioData();
   return (
     <>
       <div className="about-head">
@@ -214,9 +220,10 @@ export function Panel({
     heading?.focus({ preventScroll: true });
   }, [active, open]);
 
-  const index = HOTSPOTS.findIndex((h) => h.id === active);
-  const prev = HOTSPOTS[(index - 1 + HOTSPOTS.length) % HOTSPOTS.length];
-  const next = HOTSPOTS[(index + 1) % HOTSPOTS.length];
+  const hotspots = useHotspots();
+  const index = hotspots.findIndex((h) => h.id === active);
+  const prev = hotspots[(index - 1 + hotspots.length) % hotspots.length];
+  const next = hotspots[(index + 1) % hotspots.length];
   const Body = open ? CONTENT[active as PanelId] : null;
 
   return (

@@ -1,0 +1,11 @@
+rules_version = '2';
+
+// Only the website's server reads and writes CVs, through the Admin SDK, which
+// bypasses these rules. Browsers get no direct access to the database.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

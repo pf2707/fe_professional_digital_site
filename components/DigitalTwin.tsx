@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import ReactMarkdown from "react-markdown";
-import { profile } from "@/lib/profile";
+import { useStudioData } from "@/components/studio/StudioData";
+import { PREVIEW_QUESTIONS, previewLimitMessage } from "@/lib/premium";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -17,6 +18,7 @@ export function DigitalTwin({
   onOpenChange?: (open: boolean) => void;
   launcher?: boolean;
 } = {}) {
+  const { profile, slug, twin, preview } = useStudioData();
   const [openState, setOpenState] = useState(false);
   const open = openProp ?? openState;
   const setOpen = (next: boolean | ((o: boolean) => boolean)) => {
@@ -56,6 +58,12 @@ export function DigitalTwin({
     const next: Message[] = [...messages, { role: "user", content: trimmed }];
     setMessages(next);
     setInput("");
+
+    // In the editor's preview the twin answers a couple of questions as a trial.
+    if (twin === "preview" && (!preview || next.filter((m) => m.role === "user").length > PREVIEW_QUESTIONS)) {
+      setMessages([...next, { role: "assistant", content: previewLimitMessage }]);
+      return;
+    }
     setLoading(true);
 
     // Only the real conversation (skip the canned greeting) goes to the twin.
@@ -64,8 +72,15 @@ export function DigitalTwin({
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: history }),
+        headers: {
+          "Content-Type": "application/json",
+          ...(twin === "preview" && preview ? { Authorization: `Bearer ${await preview.token()}` } : {}),
+        },
+        body: JSON.stringify(
+          twin === "preview" && preview
+            ? { preview: { name: profile.name, knowledge: preview.knowledge }, messages: history }
+            : { slug, messages: history },
+        ),
       });
 
       if (!res.ok || !res.body) {
@@ -105,6 +120,8 @@ export function DigitalTwin({
       setLoading(false);
     }
   }
+
+  if (twin === "off") return null;
 
   return (
     <>

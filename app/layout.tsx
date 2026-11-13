@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Instrument_Sans } from "next/font/google";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { profile } from "@/lib/profile";
+import { COMPANY } from "@/lib/business";
 import "./globals.css";
 
 const display = Bricolage_Grotesque({
@@ -16,8 +16,8 @@ const body = Instrument_Sans({
 });
 
 export const metadata: Metadata = {
-  title: `${profile.name} — Digital CV`,
-  description: `${profile.title}. ${profile.tagline} An interactive 3D CV with an AI digital twin that answers questions about ${profile.name}.`,
+  title: "3D CV",
+  description: "Interactive 3D CVs, each with an AI digital twin that answers questions about its owner.",
 };
 
 export const viewport: Viewport = {
@@ -35,6 +35,7 @@ export default function RootLayout({
     <html lang="en" className={`${display.variable} ${body.variable}`} suppressHydrationWarning>
       <body>
         <ThemeProvider>{children}</ThemeProvider>
+        <footer className="site-footer">Copyright © {COMPANY}</footer>
       </body>
     </html>
   );

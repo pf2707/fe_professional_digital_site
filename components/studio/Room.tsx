@@ -10,8 +10,9 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import { Billboard, Float, Html, RoundedBox, Sparkles, useCursor, useTexture } from "@react-three/drei";
 import * as THREE from "three";
-import { profile, type Certificate } from "@/lib/profile";
-import { HOTSPOTS, MOTTO, type HotspotId } from "./hotspots";
+import type { Certificate } from "@/lib/profile";
+import { MOTTO, type HotspotId } from "./hotspots";
+import { useHotspots, useStudioData } from "./StudioData";
 import {
   drawCertificate,
   drawCorkboard,
@@ -23,19 +24,11 @@ import {
   useCanvasTexture,
 } from "./textures";
 
-const C = {
-  wall: "#d6cbbb",
-  wallNight: "#b7ab9b",
-  floor: "#6e4a33",
-  base: "#1d2a44",
-  wood: "#7a4e35",
-  woodDark: "#4a2f20",
-  metal: "#2a3245",
-  amber: "#f5a945",
-  teal: "#38d1c0",
-  velvet: "#355c4a",
-  rug: "#2c4a5c",
-};
+// The room's colours come from the CV's design (lib/designs.ts).
+function useRoom() {
+  const { design, profile } = useStudioData();
+  return { C: design.palette, profile };
+}
 
 export type RoomProps = {
   active: HotspotId | null;
@@ -72,7 +65,8 @@ function Hotspot({
     g.scale.setScalar(s);
   });
 
-  const hint = id === "motto" ? MOTTO.hint : HOTSPOTS.find((h) => h.id === id)!.hint;
+  const hotspots = useHotspots();
+  const hint = id === "motto" ? MOTTO.hint : (hotspots.find((h) => h.id === id)?.hint ?? "");
 
   return (
     <group
@@ -125,6 +119,7 @@ function Box({
 
 // ── Shell: plinth, floor, two walls, window ─────────────────────────────────
 function Shell({ night }: { night: boolean }) {
+  const { C } = useRoom();
   const sky = useCanvasTexture(drawSkyline(night), 1024, 768, [night]);
   const wall = night ? C.wallNight : C.wall;
   return (
@@ -162,6 +157,7 @@ function Shell({ night }: { night: boolean }) {
 
 // ── Desk, monitor (Work), lamp (lights switch), chair ───────────────────────
 function Desk({ room }: { room: RoomProps }) {
+  const { C, profile } = useRoom();
   const lines = profile.studio.terminal;
   const [step, setStep] = useState(room.calm ? lines.length : 1);
   useEffect(() => {
@@ -169,7 +165,7 @@ function Desk({ room }: { room: RoomProps }) {
     const t = setInterval(() => setStep((s) => (s >= lines.length + 6 ? 1 : s + 1)), 700);
     return () => clearInterval(t);
   }, [room.calm, lines.length]);
-  const screen = useCanvasTexture(drawTerminal(lines, step), 1024, 576, [step]);
+  const screen = useCanvasTexture(drawTerminal(lines, step), 1024, 576, [step, lines.join("\n")]);
   const [lampHover, setLampHover] = useState(false);
   useCursor(lampHover);
 
@@ -272,6 +268,7 @@ function Desk({ room }: { room: RoomProps }) {
 
 // ── Agent rack (Stack) ──────────────────────────────────────────────────────
 function Rack({ room }: { room: RoomProps }) {
+  const { C } = useRoom();
   const leds = useRef<THREE.MeshBasicMaterial[]>([]);
   const ledLayout = useMemo(
     () =>
@@ -282,7 +279,7 @@ function Rack({ room }: { room: RoomProps }) {
           color: (row + col) % 4 === 0 ? C.amber : C.teal,
         })),
       ),
-    [],
+    [C.amber, C.teal],
   );
 
   useFrame(({ clock }) => {
@@ -340,6 +337,7 @@ function Rack({ room }: { room: RoomProps }) {
 
 // ── Certificates on the left wall (Certificates) + neon name sign ───────────
 function Certificate({ cert, z }: { cert: Certificate; z: number }) {
+  const { C, profile } = useRoom();
   const tex = useCanvasTexture(drawCertificate(cert, profile.name), 640, 820, [JSON.stringify(cert), profile.name]);
   return (
     <group position={[-3.97, 2.3, z]} rotation={[0, Math.PI / 2, 0]}>
@@ -353,7 +351,8 @@ function Certificate({ cert, z }: { cert: Certificate; z: number }) {
 }
 
 function CertWall({ room }: { room: RoomProps }) {
-  const neon = useCanvasTexture(drawNeon(profile.studio.neon, C.teal), 1680, 440, [profile.studio.neon]);
+  const { C, profile } = useRoom();
+  const neon = useCanvasTexture(drawNeon(profile.studio.neon, C.teal), 1680, 440, [profile.studio.neon, C.teal]);
   return (
     <>
       <Hotspot id="certs" room={room} labelAt={[-3.6, 3.2, -0.6]}>
@@ -375,6 +374,7 @@ function CertWall({ room }: { room: RoomProps }) {
 
 // ── Corkboard (Career) ──────────────────────────────────────────────────────
 function Corkboard({ room }: { room: RoomProps }) {
+  const { C, profile } = useRoom();
   const tex = useCanvasTexture(drawCorkboard(profile.experience), 1280, 560, [JSON.stringify(profile.experience)]);
   return (
     <Hotspot id="career" room={room} labelAt={[0.9, 4.1, -3.8]}>
@@ -389,6 +389,7 @@ function Corkboard({ room }: { room: RoomProps }) {
 
 // ── Filing cabinet (Mobile archive) ─────────────────────────────────────────
 function Drawer({ index, pull, label }: { index: number; pull: number; label: string }) {
+  const { C } = useRoom();
   const ref = useRef<THREE.Group>(null);
   const tex = useCanvasTexture(drawLabel(label), 320, 96, [label]);
   useFrame((_, dt) => {
@@ -423,6 +424,7 @@ function Drawer({ index, pull, label }: { index: number; pull: number; label: st
 }
 
 function Cabinet({ room }: { room: RoomProps }) {
+  const { C, profile } = useRoom();
   const open = room.active === "archive";
   const peek = room.hovered === "archive" && !room.active;
   return (
@@ -446,6 +448,7 @@ function Cabinet({ room }: { room: RoomProps }) {
 // Not a CV section, so it isn't a <Hotspot>: it has no panel or dock entry,
 // it just dials. The About panel has the same number as a link.
 function Telephone({ room }: { room: RoomProps }) {
+  const { C, profile } = useRoom();
   const body = useRef<THREE.Group>(null);
   const handset = useRef<THREE.Group>(null);
   const waves = useRef<THREE.Mesh[]>([]);
@@ -579,6 +582,7 @@ function Steam({ position, calm }: { position: [number, number, number]; calm: b
 }
 
 function ReadingCorner({ room }: { room: RoomProps }) {
+  const { C } = useRoom();
   return (
     <Hotspot id="about" room={room} labelAt={[2.4, 2.1, 1.2]}>
       <mesh position={[2.4, 0.01, 1.2]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
@@ -655,6 +659,7 @@ function PhotoFace({ src }: { src: string }) {
 
 // No photo set: project the initials instead.
 function InitialsFace() {
+  const { profile } = useRoom();
   const map = useCanvasTexture(drawInitials(profile.initials), 512, 512, [profile.initials]);
   return <HoloDisc map={map} />;
 }
@@ -677,6 +682,7 @@ function HoloDisc({ map }: { map: THREE.Texture }) {
 }
 
 function Hologram({ room }: { room: RoomProps }) {
+  const { C, profile } = useRoom();
   const rings = useRef<THREE.Group>(null);
   useFrame((_, dt) => {
     if (!rings.current || room.calm) return;
@@ -787,6 +793,8 @@ function Lights({ night, calm }: { night: boolean; calm: boolean }) {
 }
 
 export function Room(props: RoomProps) {
+  const { profile } = useRoom();
+  const { twin } = useStudioData();
   return (
     <group>
       <Lights night={props.night} calm={props.calm} />
@@ -798,7 +806,7 @@ export function Room(props: RoomProps) {
       <Cabinet room={props} />
       {profile.phone && <Telephone room={props} />}
       <ReadingCorner room={props} />
-      <Hologram room={props} />
+      {twin !== "off" && <Hologram room={props} />}
       <Plant />
     </group>
   );

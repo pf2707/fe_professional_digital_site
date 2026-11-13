@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useTheme } from "next-themes";
-import { profile } from "@/lib/profile";
 import { DigitalTwin } from "@/components/DigitalTwin";
-import { HOTSPOTS, type HotspotId } from "./hotspots";
+import type { HotspotId } from "./hotspots";
 import { Panel } from "./Panels";
+import { useHotspots, useStudioData } from "./StudioData";
 
 const Scene = dynamic(() => import("./Scene"), { ssr: false });
 
@@ -20,7 +20,10 @@ function hasWebGL() {
   }
 }
 
-export function Studio() {
+// `extra` is page-specific chrome drawn over the room, like the design picker on /scene.
+export function Studio({ extra }: { extra?: ReactNode } = {}) {
+  const { profile, design, cvHref } = useStudioData();
+  const hotspots = useHotspots();
   const [active, setActive] = useState<HotspotId | null>(null);
   const [hovered, setHovered] = useState<HotspotId | null>(null);
   const [ready, setReady] = useState(false);
@@ -56,15 +59,20 @@ export function Studio() {
       if (el.closest("input, textarea, [contenteditable]")) return;
       if (e.key === "Escape") close();
       const n = Number(e.key);
-      if (n >= 1 && n <= HOTSPOTS.length) select(HOTSPOTS[n - 1].id);
+      if (n >= 1 && n <= hotspots.length) select(hotspots[n - 1].id);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [close, select]);
+  }, [close, select, hotspots]);
+
+  // The design's sky sits behind the diorama, by night or by day.
+  const sky = design.sky[night ? "night" : "day"];
+  const skyVars = { "--sky-1": sky[0], "--sky-2": sky[1], "--sky-3": sky[2] } as CSSProperties;
 
   return (
     <div
       className={`studio ${active ? "is-focused" : ""} ${active && active !== "twin" && active !== "motto" ? "has-panel" : ""} ${active === "motto" ? "is-motto" : ""}`}
+      style={skyVars}
     >
       <h1 className="sr-only">
         {profile.name}, {profile.title}. Interactive 3D CV.
@@ -88,8 +96,8 @@ export function Studio() {
       {webgl === false && (
         <div className="no-webgl">
           <h2>This browser can&apos;t draw the 3D studio.</h2>
-          <p>Everything in it is also on the text version of my CV.</p>
-          <Link href="/cv" className="btn-solid">
+          <p>Everything in it is also on the text version of this CV.</p>
+          <Link href={cvHref} className="btn-solid">
             Open the text CV
           </Link>
         </div>
@@ -101,7 +109,7 @@ export function Studio() {
           <span>{profile.subtitle}</span>
         </button>
         <div className="hud-actions">
-          <Link href="/cv" className="hud-link">
+          <Link href={cvHref} className="hud-link">
             Text CV
           </Link>
           <a href={`mailto:${profile.email}`} className="hud-link hide-sm">
@@ -115,12 +123,12 @@ export function Studio() {
       </header>
 
       <p className={`hud-hint ${ready && !explored ? "show" : ""}`} aria-hidden>
-        <span className="hint-fine">Click anything in the room, or press 1–7</span>
+        <span className="hint-fine">Click anything in the room, or press 1–{hotspots.length}</span>
         <span className="hint-touch">Tap anything in the room</span>
       </p>
 
       <nav className="dock" aria-label="Studio sections">
-        {HOTSPOTS.map((h, i) => (
+        {hotspots.map((h, i) => (
           <button
             key={h.id}
             className={`${active === h.id ? "on" : ""} ${hovered === h.id ? "hover" : ""} ${h.id === "twin" ? "dock-twin" : ""}`}
@@ -148,6 +156,8 @@ export function Studio() {
         onOpenChange={(o) => (o ? select("twin") : close())}
         launcher={false}
       />
+
+      {extra}
 
       <div className={`curtain ${ready || webgl === false ? "up" : ""}`} aria-hidden>
         <span>{profile.name}</span>

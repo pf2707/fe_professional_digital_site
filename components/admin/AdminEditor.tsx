@@ -1,17 +1,26 @@
 "use client";
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  /admin — edits data/profile.json and data/twin-knowledge.json.
-//  Saving writes the files through /api/admin, which only allows it while
-//  running `npm run dev`. The preview pane reloads after each save.
+//  /scene/admin — fill in a CV. A working copy is kept in this browser as you type,
+//  and the preview pane redraws from it live. Save stores the CV in the
+//  database (lib/draft.ts). Publish saves, then reserves the CV's path and
+//  sends it for approval (/scene/admin/publish). Each account has one CV.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { Certificate, Profile, SectionId } from "@/lib/profile";
-import type { TwinKnowledge } from "@/lib/twin";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth, useUser } from "@/components/auth/AuthProvider";
+import { DesignSwatch } from "@/components/scene/DesignPicker";
+import { validateCv } from "@/lib/cv-validate";
+import { DESIGNS, designById } from "@/lib/designs";
+import { blankCv, cleanCv, loadDraft, loadFromCloud, saveDraft, saveToCloud } from "@/lib/draft";
+import { draftProblem } from "@/lib/cv-validate";
+import { CONTACT } from "@/lib/business";
+import { PREVIEW_QUESTIONS, premiumNote } from "@/lib/premium";
+import type { Certificate, CvContent, Profile, SectionId, TwinKnowledge } from "@/lib/profile";
 import { Lines, List, Select, Tags, Text, Toggle } from "./fields";
 
-type Content = { profile: Profile; knowledge: TwinKnowledge };
+type Content = CvContent;
 
 const TABS = [
   { id: "basics", label: "Basics" },
@@ -36,74 +45,74 @@ const SECTION_NAMES: Record<SectionId, string> = {
   twin: "Hologram (digital twin)",
 };
 
-// Drop blank lines/items left over from editing before saving.
-function clean(c: Content): Content {
-  const n = structuredClone(c);
-  const nonEmpty = (a: string[]) => a.map((s) => s.trim()).filter(Boolean);
-  n.profile.about = nonEmpty(n.profile.about);
-  n.profile.studio.terminal = n.profile.studio.terminal.filter((s) => s.trim());
-  n.profile.studio.neon = nonEmpty(n.profile.studio.neon.split("\n")).join("\n");
-  n.profile.phone = (n.profile.phone ?? "").trim();
-  n.profile.twin.suggestions = nonEmpty(n.profile.twin.suggestions);
-  n.profile.skills = n.profile.skills.map((g) => ({ ...g, items: nonEmpty(g.items) }));
-  n.profile.certificates = n.profile.certificates.map((cert) => {
-    const out = { ...cert };
-    if (!out.note?.trim()) delete out.note;
-    if (!out.badge?.trim()) delete out.badge;
-    return out;
-  });
-  return n;
-}
-
 export function AdminEditor() {
+  const router = useRouter();
+  const user = useUser();
+  const { signOut } = useAuth();
   const [content, setContent] = useState<Content | null>(null);
-  const [saved, setSaved] = useState("");
-  const [editable, setEditable] = useState(false);
   const [tab, setTab] = useState<TabId>("basics");
-  const [status, setStatus] = useState<{ kind: "idle" | "saving" | "ok" | "error"; text?: string }>({ kind: "idle" });
-  const [preview, setPreview] = useState<"" | "/" | "/cv">("/");
-  const [previewKey, setPreviewKey] = useState(0);
-  const [loadError, setLoadError] = useState("");
+  const [status, setStatus] = useState<{ kind: "idle" | "ok" | "error"; text?: string }>({ kind: "idle" });
+  const [preview, setPreview] = useState<"" | "studio" | "cv">("studio");
+  const [saved, setSaved] = useState<string | null>(null); // the last version saved to the database
+  const [saving, setSaving] = useState(false);
 
+  // Pick up where this browser left off, or start from the blank template.
+  // The account's saved copy is the baseline.
   useEffect(() => {
-    fetch("/api/admin", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : Promise.reject(r.statusText)))
-      .then(({ editable, ...c }: Content & { editable: boolean }) => {
-        setContent(c);
-        setSaved(JSON.stringify(c));
-        setEditable(editable);
+    const local = loadDraft(user.uid);
+    setContent(local ?? blankCv());
+    loadFromCloud(user)
+      .then((cloud) => {
+        if (!cloud) return;
+        const copy = { profile: cloud.profile, knowledge: cloud.knowledge };
+        if (!local) setContent(copy);
+        setSaved(JSON.stringify(copy));
       })
-      .catch(() => setLoadError("Couldn't load the content files. Check that data/profile.json is valid JSON."));
-  }, []);
+      .catch((e) => setStatus({ kind: "error", text: e.message }));
+  }, [user]);
 
-  const dirty = content !== null && JSON.stringify(content) !== saved;
-
+  // Keep the working copy as you type; the preview pane listens for the change.
   useEffect(() => {
-    if (!dirty) return;
-    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty]);
+    if (!content) return;
+    const t = setTimeout(() => {
+      if (!saveDraft(user.uid, content))
+        setStatus({ kind: "error", text: "This browser's storage is full or blocked. Try a smaller photo, then Save." });
+    }, 300);
+    return () => clearTimeout(t);
+  }, [content, user.uid]);
+
+  const cleaned = useMemo(() => (content ? cleanCv(content) : null), [content]);
+  const dirty = cleaned !== null && JSON.stringify(cleaned) !== saved;
 
   const save = useCallback(async () => {
-    if (!content || !editable) return;
-    setStatus({ kind: "saving" });
-    const body = clean(content);
-    const res = await fetch("/api/admin", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) {
-      setStatus({ kind: "error", text: await res.text() });
-      return;
+    if (!cleaned || saving) return false;
+    const problem = draftProblem(cleaned);
+    if (problem) {
+      setStatus({ kind: "error", text: problem });
+      return false;
     }
-    setContent(body);
-    setSaved(JSON.stringify(body));
-    setStatus({ kind: "ok", text: "Saved to data/. Commit and deploy to publish." });
-    // Give the dev server a moment to pick up the new files.
-    setTimeout(() => setPreviewKey((k) => k + 1), 900);
-  }, [content, editable]);
+    setSaving(true);
+    try {
+      const { cv, slug } = await saveToCloud(user, cleaned);
+      setSaved(JSON.stringify(cleaned));
+      const time = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+      setStatus({
+        kind: "ok",
+        text:
+          cv === "updated"
+            ? `Saved at ${time}. Your CV waiting for approval at /${slug} has the changes too.`
+            : cv === "live"
+              ? `Saved at ${time}. /${slug} is already live: contact us to publish these changes.`
+              : `Saved at ${time}`,
+      });
+      return true;
+    } catch (e) {
+      setStatus({ kind: "error", text: e instanceof Error ? e.message : "Couldn't save. Try again." });
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  }, [cleaned, saving, user]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -116,23 +125,32 @@ export function AdminEditor() {
     return () => window.removeEventListener("keydown", onKey);
   }, [save]);
 
-  const loadTemplate = async () => {
-    if (!window.confirm("Replace everything in the editor with the blank starter template? Nothing is saved until you press Save.")) return;
-    const res = await fetch("/api/admin?template=1", { cache: "no-store" });
-    const { editable: _e, ...c } = await res.json();
-    setContent(c);
+  const startOver = () => {
+    if (!window.confirm("Replace your CV with the blank template? Your saved copy stays as it is until you Save.")) return;
+    setContent(blankCv());
+    setStatus({ kind: "idle" });
     setTab("basics");
-    setStatus({ kind: "idle" });
   };
 
-  const discard = () => {
-    if (!window.confirm("Discard your unsaved changes?")) return;
-    setContent(JSON.parse(saved));
-    setStatus({ kind: "idle" });
+  const publish = async () => {
+    if (!cleaned) return;
+    const problem = validateCv(cleaned);
+    if (problem) return setStatus({ kind: "error", text: problem });
+    if (dirty && !(await save())) return;
+    router.push("/scene/admin/publish");
   };
 
-  if (loadError) return <div className="admin-empty">{loadError}</div>;
   if (!content) return <div className="admin-empty">Loading…</div>;
+
+  const statusText = saving
+    ? "Saving…"
+    : status.kind === "error"
+      ? status.text
+      : dirty
+        ? saved
+          ? "Unsaved changes"
+          : "Not saved yet"
+        : (status.text ?? "All changes saved");
 
   const p = content.profile;
   const k = content.knowledge;
@@ -156,41 +174,32 @@ export function AdminEditor() {
           <strong>Edit CV</strong>
           <span>{p.name || "Untitled"}</span>
         </div>
-        <p className={`admin-status ${status.kind}`} role="status">
-          {status.kind === "saving"
-            ? "Saving…"
-            : status.kind === "error"
-              ? status.text
-              : dirty
-                ? "Unsaved changes"
-                : status.text ?? "All changes saved"}
+        <div className="admin-account">
+          <span title={user.email ?? undefined}>{user.email}</span>
+          <button type="button" className="ghost" onClick={() => (!dirty || window.confirm("You have unsaved changes. Sign out anyway?")) && signOut()}>
+            Sign out
+          </button>
+        </div>
+        <p className={`admin-status ${status.kind === "error" ? "error" : !dirty && !saving ? "ok" : ""}`} role="status">
+          {statusText}
         </p>
         <div className="admin-actions">
-          <button type="button" className="ghost" onClick={loadTemplate}>
-            Start from blank template
+          <button type="button" className="ghost" onClick={startOver}>
+            Start over
           </button>
           <select value={preview} onChange={(e) => setPreview(e.target.value as typeof preview)} aria-label="Preview">
-            <option value="/">Preview: 3D studio</option>
-            <option value="/cv">Preview: text CV</option>
+            <option value="studio">Preview: 3D studio</option>
+            <option value="cv">Preview: text CV</option>
             <option value="">Hide preview</option>
           </select>
-          {dirty && (
-            <button type="button" className="ghost" onClick={discard}>
-              Discard
-            </button>
-          )}
-          <button type="button" className="primary" onClick={save} disabled={!editable || !dirty || status.kind === "saving"}>
-            Save
+          <button type="button" className="ghost" onClick={save} disabled={saving || !dirty}>
+            {saving ? "Saving…" : "Save"}
+          </button>
+          <button type="button" className="primary" onClick={publish} disabled={saving}>
+            Publish
           </button>
         </div>
       </header>
-
-      {!editable && (
-        <p className="admin-readonly">
-          Read-only: this is a deployed site. Run <code>npm run dev</code> and open <code>localhost:3000/admin</code> to edit, then commit
-          and deploy.
-        </p>
-      )}
 
       <nav className="admin-nav" aria-label="Editor sections">
         {TABS.map((t) => (
@@ -208,7 +217,7 @@ export function AdminEditor() {
               <Text label="Full name" value={p.name} onChange={(v) => setP((d) => void (d.name = v))} />
               <Text label="Initials" value={p.initials} onChange={(v) => setP((d) => void (d.initials = v))} hint="Shown when there's no photo." />
             </div>
-            <Avatar value={p.avatar} editable={editable} onChange={(v) => setP((d) => void (d.avatar = v))} initials={p.initials} />
+            <Avatar value={p.avatar} onChange={(v) => setP((d) => void (d.avatar = v))} initials={p.initials} />
             <Text label="Job title" value={p.title} onChange={(v) => setP((d) => void (d.title = v))} />
             <Text label="Studio subtitle" value={p.subtitle} onChange={(v) => setP((d) => void (d.subtitle = v))} hint="Under the name in the top-left of the 3D studio." />
             <Text label="Tagline" value={p.tagline} onChange={(v) => setP((d) => void (d.tagline = v))} hint="Used in the page description for search engines." />
@@ -417,7 +426,25 @@ export function AdminEditor() {
         {tab === "studio" && (
           <>
             <h2>3D studio</h2>
-            <p className="admin-lede">The words that appear on objects in the room, and the panel each object opens.</p>
+            <p className="admin-lede">How the room looks, the words on its objects, and the panel each object opens.</p>
+            <div className="f">
+              <span className="f-label">Room design</span>
+              <div className="design-choices">
+                {DESIGNS.map((d) => (
+                  <button
+                    key={d.id}
+                    type="button"
+                    className={designById(p.studio.design).id === d.id ? "on" : ""}
+                    aria-pressed={designById(p.studio.design).id === d.id}
+                    onClick={() => setP((x) => void (x.studio.design = d.id))}
+                  >
+                    <DesignSwatch design={d} />
+                    <strong>{d.name}</strong>
+                    <span>{d.blurb}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
             <Text
               label="Neon sign"
               multiline
@@ -480,9 +507,18 @@ export function AdminEditor() {
         {tab === "twin" && (
           <>
             <h2>Digital twin</h2>
+            <Toggle
+              label="Turn on the digital twin"
+              checked={p.twin.enabled !== false}
+              onChange={(v) => setP((d) => void (d.twin.enabled = v))}
+              hint="Visitors chat with an AI version of you, standing in the room as a hologram. Turn it off to remove the hologram and the chat."
+            />
+            <p className="premium-note">
+              {premiumNote} <a href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>
+            </p>
             <p className="admin-lede">
-              The chat greeting is public. Everything under “What the twin knows” stays on the server and is only sent to the AI
-              model.
+              The chat greeting is public. Everything under “What the twin knows” is only sent to the AI model, and the twin answers
+              only from it. In the preview, the twin answers {PREVIEW_QUESTIONS} questions so you can try it.
             </p>
             <Text label="Greeting" value={p.twin.greeting} onChange={(v) => setP((d) => void (d.twin.greeting = v))} multiline rows={2} />
             <Lines label="Suggested questions" value={p.twin.suggestions} onChange={(v) => setP((d) => void (d.twin.suggestions = v))} rows={4} />
@@ -522,42 +558,56 @@ export function AdminEditor() {
       {preview && (
         <aside className="admin-preview">
           <div className="preview-head">
-            <span>{dirty ? "Preview shows the last save" : "Preview"}</span>
-            <a href={preview} target="_blank" rel="noopener noreferrer">
+            <span>Preview</span>
+            <a href={`/scene/admin/preview?view=${preview}`} target="_blank" rel="noopener noreferrer">
               Open in new tab
             </a>
           </div>
-          <iframe key={previewKey} src={preview} title="Site preview" />
+          <iframe src={`/scene/admin/preview?view=${preview}`} title="CV preview" />
         </aside>
       )}
     </div>
   );
 }
 
-function Avatar({
-  value,
-  onChange,
-  editable,
-  initials,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  editable: boolean;
-  initials: string;
-}) {
+// The photo is shrunk in the browser and stored in the CV itself as a small
+// JPEG data URL, so it publishes with the rest of the CV.
+const PHOTO_SIZE = 360;
+
+function shrinkPhoto(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      // Centre-crop to a square: it becomes the round hologram.
+      const side = Math.min(img.width, img.height);
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = Math.min(PHOTO_SIZE, side);
+      canvas
+        .getContext("2d")!
+        .drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL("image/jpeg", 0.85));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("That file isn't an image this browser can read."));
+    };
+    img.src = url;
+  });
+}
+
+function Avatar({ value, onChange, initials }: { value: string; onChange: (v: string) => void; initials: string }) {
   const input = useRef<HTMLInputElement>(null);
   const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
 
-  const upload = async (file: File) => {
-    setBusy(true);
+  const pick = async (file: File) => {
     setError("");
-    const form = new FormData();
-    form.append("file", file);
-    const res = await fetch("/api/admin/upload", { method: "POST", body: form });
-    setBusy(false);
-    if (!res.ok) return setError(await res.text());
-    onChange((await res.json()).path);
+    try {
+      onChange(await shrinkPhoto(file));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't read that photo.");
+    }
   };
 
   return (
@@ -571,8 +621,8 @@ function Avatar({
           <span className="avatar-img avatar-initials">{initials}</span>
         )}
         <div className="avatar-buttons">
-          <button type="button" className="ghost" disabled={!editable || busy} onClick={() => input.current?.click()}>
-            {busy ? "Uploading…" : value ? "Replace photo" : "Upload photo"}
+          <button type="button" className="ghost" onClick={() => input.current?.click()}>
+            {value ? "Replace photo" : "Add photo"}
           </button>
           {value && (
             <button type="button" className="ghost" onClick={() => onChange("")}>
@@ -587,12 +637,12 @@ function Avatar({
           hidden
           onChange={(e) => {
             const f = e.target.files?.[0];
-            if (f) upload(f);
+            if (f) pick(f);
             e.target.value = "";
           }}
         />
       </div>
-      <p className="f-hint">{error || "PNG, JPEG or WebP, up to 5 MB. A square photo works best: it becomes the hologram."}</p>
+      <p className="f-hint">{error || "PNG, JPEG or WebP. It's cropped to a square and becomes the hologram."}</p>
     </div>
   );
 }
@@ -604,8 +654,8 @@ function RawJson({ content, onApply }: { content: Content; onApply: (c: Content)
     <>
       <h2>Raw JSON</h2>
       <p className="admin-lede">
-        Both files at once: <code>profile</code> is data/profile.json, <code>knowledge</code> is data/twin-knowledge.json. Apply,
-        then Save.
+        The whole CV: <code>profile</code> is what visitors see, <code>knowledge</code> is what the twin knows. Apply to load it into
+        the editor.
       </p>
       <textarea className="mono raw" value={text} onChange={(e) => setText(e.target.value)} spellCheck={false} />
       {error && <p className="f-error">{error}</p>}

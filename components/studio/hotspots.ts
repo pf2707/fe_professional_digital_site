@@ -1,11 +1,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
 //  Every clickable object in the studio, in dock order. The number key that
-//  focuses a hotspot is its index + 1. Labels and hover hints are content
-//  (data/profile.json); camera positions belong to the 3D room.
+//  focuses a hotspot is its index + 1. Labels and hover hints come from the
+//  CV being shown; camera positions belong to the 3D room.
 //  `camera` / `target` are where the camera flies to when the hotspot opens.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { profile, type SectionId } from "@/lib/profile";
+import type { Profile, SectionId } from "@/lib/profile";
 
 // "motto" is the neon sign: clickable for a close-up, but not a CV section.
 export type HotspotId = SectionId | "motto";
@@ -14,13 +14,13 @@ export type Vec3 = [number, number, number];
 
 export type Hotspot = {
   id: SectionId;
-  label: string; // dock + hover label (from data/profile.json)
-  hint: string; // what the object is, shown on hover (from data/profile.json)
+  label: string; // dock + hover label (from the CV)
+  hint: string; // what the object is, shown on hover (from the CV)
   camera: Vec3;
   target: Vec3;
 };
 
-const VIEWS: Omit<Hotspot, "label" | "hint">[] = [
+export const VIEWS: Omit<Hotspot, "label" | "hint">[] = [
   {
     id: "work",
     camera: [1.9, 2.75, 0.9],
@@ -58,11 +58,14 @@ const VIEWS: Omit<Hotspot, "label" | "hint">[] = [
   },
 ];
 
-export const HOTSPOTS: Hotspot[] = VIEWS.map((v) => ({
-  ...v,
-  label: profile.studio.sections[v.id].label,
-  hint: profile.studio.sections[v.id].hint,
-}));
+// The dock for one CV. Without a twin there's no hologram to visit.
+export function hotspotsFor(profile: Profile, withTwin: boolean): Hotspot[] {
+  return VIEWS.filter((v) => withTwin || v.id !== "twin").map((v) => ({
+    ...v,
+    label: profile.studio.sections[v.id].label,
+    hint: profile.studio.sections[v.id].hint,
+  }));
+}
 
 // The neon sign over the certificates. Clicking it flies in to read it; it has
 // no panel and isn't in the dock. The camera frames `size` metres of wall.

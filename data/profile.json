@@ -354,6 +354,7 @@
     }
   ],
   "studio": {
+    "design": "studio",
     "neon": "Hire me, men!",
     "terminal": [
       "$ claude --agents fde-team",
@@ -419,6 +420,7 @@
     }
   },
   "twin": {
+    "enabled": true,
     "greeting": "👋 Hi! I'm Thai Tran's digital twin. Ask me anything about his career, skills, or projects.",
     "suggestions": [
       "What's your experience with Flutter vs native iOS?",

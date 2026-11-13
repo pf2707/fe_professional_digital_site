@@ -5,8 +5,9 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, Lightformer } from "@react-three/drei";
 import { Bloom, EffectComposer, Vignette } from "@react-three/postprocessing";
 import * as THREE from "three";
-import { HOME_VIEW, HOTSPOTS, INTRO_VIEW, MOTTO } from "./hotspots";
+import { HOME_VIEW, INTRO_VIEW, MOTTO, VIEWS } from "./hotspots";
 import { Room, type RoomProps } from "./Room";
+import { useStudioData } from "./StudioData";
 
 const UP = new THREE.Vector3(0, 1, 0);
 
@@ -28,7 +29,7 @@ function CameraRig({ active, calm }: Pick<RoomProps, "active" | "calm">) {
   useFrame((_, dt) => {
     const aspect = size.width / size.height;
     const narrow = size.width < 820;
-    const spot = HOTSPOTS.find((h) => h.id === active);
+    const spot = VIEWS.find((h) => h.id === active);
 
     if (active === "motto") {
       // Square on to the sign, far enough back that it fills ~85% of the width.
@@ -79,6 +80,7 @@ function CameraRig({ active, calm }: Pick<RoomProps, "active" | "calm">) {
 
 export default function Scene(props: RoomProps & { onReady: () => void }) {
   const { onReady, ...room } = props;
+  const { palette } = useStudioData().design;
   return (
     <Canvas
       shadows={{ type: THREE.PCFShadowMap }}
@@ -91,8 +93,8 @@ export default function Scene(props: RoomProps & { onReady: () => void }) {
       <Suspense fallback={null}>
         <Environment resolution={128} environmentIntensity={room.night ? 0.25 : 0.7}>
           <Lightformer form="rect" intensity={2} position={[0, 6, 4]} scale={[10, 4, 1]} />
-          <Lightformer form="rect" intensity={1} color="#38d1c0" position={[-6, 3, 0]} scale={[4, 4, 1]} />
-          <Lightformer form="rect" intensity={1.5} color="#f5a945" position={[6, 2, 2]} scale={[4, 3, 1]} />
+          <Lightformer form="rect" intensity={1} color={palette.teal} position={[-6, 3, 0]} scale={[4, 4, 1]} />
+          <Lightformer form="rect" intensity={1.5} color={palette.amber} position={[6, 2, 2]} scale={[4, 3, 1]} />
         </Environment>
         <Room {...room} />
         <EffectComposer multisampling={0}>
