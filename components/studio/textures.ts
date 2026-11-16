@@ -8,17 +8,26 @@
 
 import { useEffect, useMemo } from "react";
 import * as THREE from "three";
+import { useI18n } from "@/components/I18nProvider";
 
 type Draw = (ctx: CanvasRenderingContext2D, w: number, h: number) => void;
 
-// next/font exposes the hashed family names as CSS variables on <html>.
+// next/font exposes the hashed family names as CSS variables on <html>. Body
+// text is in Be Vietnam Pro on Vietnamese pages, and falls back to it for
+// Vietnamese letters elsewhere (Instrument Sans has none), as in globals.css.
 export function cssFont(variable: "--font-display" | "--font-body") {
   if (typeof document === "undefined") return "sans-serif";
-  const value = getComputedStyle(document.documentElement).getPropertyValue(variable).trim();
-  return value || "sans-serif";
+  const css = getComputedStyle(document.documentElement);
+  const value = css.getPropertyValue(variable).trim();
+  if (variable !== "--font-body") return value || "sans-serif";
+  const vi = css.getPropertyValue("--font-body-vi").trim();
+  const stack = document.documentElement.lang === "vi" ? [vi, value] : [value, vi];
+  return stack.filter(Boolean).join(", ") || "sans-serif";
 }
 
 export function useCanvasTexture(draw: Draw, w: number, h: number, deps: unknown[]) {
+  // Repaints when the language changes: the body typeface does (cssFont).
+  const { locale } = useI18n();
   const texture = useMemo(() => {
     const canvas = document.createElement("canvas");
     canvas.width = w;
@@ -41,7 +50,7 @@ export function useCanvasTexture(draw: Draw, w: number, h: number, deps: unknown
     // Repaint once web fonts are ready so canvas text uses the real typefaces.
     document.fonts?.ready.then(paint);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [texture, ...deps]);
+  }, [texture, locale, ...deps]);
 
   useEffect(() => () => texture.dispose(), [texture]);
   return texture;
@@ -183,12 +192,13 @@ export function drawCertificate(
 
     ctx.fillStyle = "#3a4256";
     ctx.font = `400 26px ${body}`;
-    ctx.fillText(`${holder} — ${cert.instructor}`, 60, h - 90);
-    ctx.fillText(
-      new Date(cert.date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
-      60,
-      h - 54,
-    );
+    ctx.fillText([holder, cert.instructor].filter(Boolean).join(" — "), 60, h - 90);
+    if (cert.date)
+      ctx.fillText(
+        new Date(cert.date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
+        60,
+        h - 54,
+      );
 
     // seal
     ctx.fillStyle = "#c9a96a";

@@ -13,7 +13,9 @@ import { useFrame } from "@react-three/fiber";
 import { RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
 import { liveGroups } from "@/lib/profile";
+import { Robot } from "./Robot";
 import { Box, Certificate, Hologram, Hotspot, Lights, Plant, Steam, Telephone, useRoom, type RoomProps } from "./parts";
+import { useT } from "@/components/I18nProvider";
 import { useStudioData } from "./StudioData";
 import {
   drawBricks,
@@ -182,7 +184,8 @@ function Chalkboard({ room }: { room: RoomProps }) {
   const { C, profile } = useRoom();
   const live = new Set(liveGroups(profile).map((g) => g.key));
   const items = profile.projects.filter((p) => live.has(p.category)).map((p) => ({ icon: p.icon, name: p.name }));
-  const title = profile.studio.sections.work.title || "Today's specials";
+  const fallback = useT().canvas.workFallback.cafe;
+  const title = profile.studio.sections.work.title || fallback;
   const tex = useCanvasTexture(drawChalkboard(title, items), 1200, 800, [title, JSON.stringify(items)]);
   return (
     <Hotspot id="work" room={room} labelAt={[-0.6, 3.85, -3.8]}>
@@ -439,7 +442,7 @@ function ArmchairCorner({ room }: { room: RoomProps }) {
 
 export function Cafe(props: RoomProps) {
   const { profile } = useRoom();
-  const { twin } = useStudioData();
+  const { twin, layout } = useStudioData();
   return (
     <group>
       <Lights night={props.night} calm={props.calm} lamp={[1.4, 2.4, -1.6]} />
@@ -453,6 +456,7 @@ export function Cafe(props: RoomProps) {
       {profile.phone && <Telephone room={props} position={[3.45, TOP, -2.05]} rotation={[0, -0.35, 0]} />}
       <ArmchairCorner room={props} />
       {twin !== "off" && <Hologram room={props} at={[0.75, -3.15]} lift={0.55} />}
+      {twin !== "off" && <Robot room={props} path={layout.robot} />}
       <Bistro position={[-2.45, 0, 0.4]} />
       <Bistro position={[-1.2, 0, 2.5]} />
       <Plant position={[-3.35, 0, 3.4]} />

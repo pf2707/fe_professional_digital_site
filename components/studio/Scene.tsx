@@ -122,7 +122,7 @@ export default function Scene(props: RoomProps & { onReady: () => void; showcase
       onPointerMissed={() => room.setHovered(null)}
     >
       <Suspense fallback={null}>
-        <Environment resolution={128} environmentIntensity={room.night ? 0.25 : 0.7}>
+        <Environment resolution={128} environmentIntensity={room.night ? 0.25 : design.bright ? 0.95 : 0.7}>
           <Lightformer form="rect" intensity={2} position={[0, 6, 4]} scale={[10, 4, 1]} />
           <Lightformer form="rect" intensity={1} color={palette.teal} position={[-6, 3, 0]} scale={[4, 4, 1]} />
           <Lightformer form="rect" intensity={1.5} color={palette.amber} position={[6, 2, 2]} scale={[4, 3, 1]} />
@@ -130,7 +130,7 @@ export default function Scene(props: RoomProps & { onReady: () => void; showcase
         <Place {...room} />
         <EffectComposer multisampling={0}>
           <Bloom mipmapBlur luminanceThreshold={1} intensity={room.night ? 0.9 : 0.4} radius={0.7} />
-          <Vignette eskil={false} offset={0.25} darkness={room.night ? 0.65 : 0.35} />
+          <Vignette eskil={false} offset={0.25} darkness={room.night ? 0.65 : design.bright ? 0.2 : 0.35} />
         </EffectComposer>
       </Suspense>
       <CameraRig active={room.active} calm={room.calm} showcase={showcase} />

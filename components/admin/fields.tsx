@@ -4,6 +4,7 @@
 // value and reports a new value; the editor owns the state.
 
 import { useEffect, useId, useState, type ReactNode } from "react";
+import { useT } from "@/components/I18nProvider";
 
 export function Field({ label, hint, children, id }: { label: string; hint?: string; children: ReactNode; id?: string }) {
   return (
@@ -85,10 +86,11 @@ export function Lines({
   rows?: number;
   mono?: boolean;
 }) {
+  const t = useT().fields;
   return (
     <Text
       label={label}
-      hint={hint ?? "One per line."}
+      hint={hint ?? t.onePerLine}
       value={value.join("\n")}
       onChange={(v) => onChange(v.split("\n"))}
       multiline
@@ -102,6 +104,7 @@ export function Lines({
 // typing a comma doesn't jump the caret.
 export function Tags({ label, value, onChange, hint }: { label: string; value: string[]; onChange: (v: string[]) => void; hint?: string }) {
   const id = useId();
+  const t = useT().fields;
   const [draft, setDraft] = useState(value.join(", "));
   useEffect(() => {
     const parsed = draft.split(",").map((s) => s.trim()).filter(Boolean);
@@ -109,7 +112,7 @@ export function Tags({ label, value, onChange, hint }: { label: string; value: s
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
   return (
-    <Field label={label} hint={hint ?? "Separate with commas."} id={id}>
+    <Field label={label} hint={hint ?? t.commas} id={id}>
       <input
         id={id}
         value={draft}
@@ -134,10 +137,11 @@ export function Select({
   options: { value: string; label: string }[];
 }) {
   const id = useId();
+  const t = useT().fields;
   return (
     <Field label={label} id={id}>
       <select id={id} value={value} onChange={(e) => onChange(e.target.value)}>
-        {!options.some((o) => o.value === value) && <option value={value}>{value || "Choose…"}</option>}
+        {!options.some((o) => o.value === value) && <option value={value}>{value || t.choose}</option>}
         {options.map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}
@@ -157,7 +161,7 @@ export function List<T>({
   blank,
   title,
   render,
-  addLabel = "Add",
+  addLabel,
 }: {
   label: string;
   hint?: string;
@@ -168,6 +172,7 @@ export function List<T>({
   render: (item: T, set: (next: T) => void) => ReactNode;
   addLabel?: string;
 }) {
+  const t = useT();
   // Small lists start open; long ones (like projects) start collapsed.
   const [openSet, setOpenSet] = useState<Set<number>>(
     () => new Set(items.length <= 4 ? items.map((_, i) => i) : []),
@@ -193,7 +198,7 @@ export function List<T>({
     });
   };
   const remove = (i: number) => {
-    if (!window.confirm(`Remove “${title(items[i], i) || "this item"}”?`)) return;
+    if (!window.confirm(t.fields.remove(title(items[i], i) || t.fields.thisItem))) return;
     onChange(items.filter((_, k) => k !== i));
     setOpenSet((s) => {
       const n = new Set<number>();
@@ -212,16 +217,16 @@ export function List<T>({
       {items.map((item, i) => (
         <details key={i} className="card" open={openSet.has(i)} onToggle={(e) => toggle(i, e.currentTarget.open)}>
           <summary>
-            <span className="card-title">{title(item, i) || <em>Untitled</em>}</span>
+            <span className="card-title">{title(item, i) || <em>{t.editor.untitled}</em>}</span>
             <span className="card-actions" onClick={(e) => e.preventDefault()}>
-              <button type="button" onClick={() => move(i, -1)} disabled={i === 0} aria-label="Move up">
+              <button type="button" onClick={() => move(i, -1)} disabled={i === 0} aria-label={t.fields.moveUp}>
                 ↑
               </button>
-              <button type="button" onClick={() => move(i, 1)} disabled={i === items.length - 1} aria-label="Move down">
+              <button type="button" onClick={() => move(i, 1)} disabled={i === items.length - 1} aria-label={t.fields.moveDown}>
                 ↓
               </button>
-              <button type="button" className="danger" onClick={() => remove(i)} aria-label="Remove">
-                Remove
+              <button type="button" className="danger" onClick={() => remove(i)} aria-label={t.fields.removeAria}>
+                {t.fields.removeAria}
               </button>
             </span>
           </summary>
@@ -238,7 +243,7 @@ export function List<T>({
           toggle(items.length, true);
         }}
       >
-        + {addLabel}
+        + {addLabel ?? t.fields.add}
       </button>
     </section>
   );

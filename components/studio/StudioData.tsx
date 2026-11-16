@@ -8,8 +8,10 @@
 
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 import { designById, type Design } from "@/lib/designs";
+import { designIn, placeIn } from "@/lib/i18n";
 import { placeById, type Place } from "@/lib/places";
 import { twinEnabled, type Profile, type TwinKnowledge } from "@/lib/profile";
+import { useT } from "../I18nProvider";
 import { hotspotsFor, LAYOUTS, type Layout } from "./hotspots";
 
 // live: the chat works · preview: a draft in the editor, so the chat answers a
@@ -30,6 +32,7 @@ type StudioData = {
   cvHref: string; // the text version of this CV
   twin: TwinMode;
   preview?: TwinPreview;
+  sample: boolean; // the sample CV: labelled so visitors don't take it for theirs
 };
 
 const Ctx = createContext<StudioData | null>(null);
@@ -42,6 +45,7 @@ export function StudioDataProvider({
   cvHref,
   draft = false,
   preview,
+  sample = false,
   children,
 }: {
   profile: Profile;
@@ -51,21 +55,25 @@ export function StudioDataProvider({
   cvHref: string;
   draft?: boolean;
   preview?: TwinPreview; // with `draft`: lets the preview chat try the twin
+  sample?: boolean;
   children: ReactNode;
 }) {
+  const t = useT();
   const value = useMemo<StudioData>(() => {
-    const where = placeById(place ?? profile.studio.place);
+    // The place and colours carry their names in the visitor's language.
+    const where = placeIn(t, placeById(place ?? profile.studio.place));
     return {
       profile,
       place: where,
       layout: LAYOUTS[where.id],
-      design: designById(design ?? profile.studio.design),
+      design: designIn(t, designById(design ?? profile.studio.design)),
       slug,
       cvHref,
       twin: !twinEnabled(profile) ? "off" : draft ? "preview" : "live",
       preview,
+      sample,
     };
-  }, [profile, place, design, slug, cvHref, draft, preview]);
+  }, [t, profile, place, design, slug, cvHref, draft, preview, sample]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

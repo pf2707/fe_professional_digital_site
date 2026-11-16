@@ -2,12 +2,11 @@
 
 import { useEffect, useRef } from "react";
 import Image from "next/image";
+import { useT } from "@/components/I18nProvider";
+import { longDate } from "@/lib/i18n";
 import { archivedGroups, liveGroups, type ProjectGroup, type SectionId } from "@/lib/profile";
 import type { HotspotId } from "./hotspots";
 import { useHotspots, useStudioData } from "./StudioData";
-
-const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
 function Intro({ id }: { id: SectionId }) {
   const { title, lede } = useStudioData().profile.studio.sections[id];
@@ -81,17 +80,16 @@ function Stack() {
 
 function Certs() {
   const { profile } = useStudioData();
+  const t = useT();
   return (
     <>
       <Intro id="certs" />
       <ol className="certs">
         {profile.certificates.map((c) => (
           <li key={c.title}>
-            <time dateTime={c.date}>{formatDate(c.date)}</time>
+            {c.date && <time dateTime={c.date}>{longDate(t, new Date(c.date))}</time>}
             <h4>{c.title}</h4>
-            <p>
-              {c.issuer}, taught by {c.instructor}
-            </p>
+            <p>{t.panel.taughtBy(c.issuer, c.instructor)}</p>
             {c.note && <p className="cert-note">{c.note}</p>}
           </li>
         ))}
@@ -139,6 +137,7 @@ function Archive() {
 
 function About() {
   const { profile } = useStudioData();
+  const t = useT();
   return (
     <>
       <div className="about-head">
@@ -155,10 +154,10 @@ function About() {
       ))}
       <dl className="facts">
         {[
-          { label: "Based in", value: profile.location },
-          { label: "Languages", value: profile.languages },
+          { label: t.panel.basedIn, value: profile.location },
+          { label: t.panel.languages, value: profile.languages },
           ...profile.stats,
-          { label: "Status", value: profile.available ? "Open to new roles and projects" : "Not looking right now" },
+          { label: t.panel.status, value: profile.available ? t.panel.open : t.panel.notLooking },
         ].map((f) => (
           <div key={f.label}>
             <dt>{f.label}</dt>
@@ -168,11 +167,11 @@ function About() {
       </dl>
       <div className="panel-cta">
         <a className="btn-solid" href={`mailto:${profile.email}`}>
-          Email {profile.email}
+          {t.panel.email(profile.email)}
         </a>
         {profile.phone && (
           <a className="btn-ghost" href={`tel:${profile.phone.replace(/[^\d+]/g, "")}`}>
-            Call {profile.phone}
+            {t.panel.call(profile.phone)}
           </a>
         )}
         <div className="socials-row">
@@ -223,6 +222,7 @@ export function Panel({
     heading?.focus({ preventScroll: true });
   }, [active, open, passive]);
 
+  const t = useT();
   const hotspots = useHotspots();
   const index = hotspots.findIndex((h) => h.id === active);
   const prev = hotspots[(index - 1 + hotspots.length) % hotspots.length];
@@ -234,11 +234,11 @@ export function Panel({
       className={`panel ${open ? "open" : ""}`}
       aria-hidden={!open || passive}
       inert={passive}
-      aria-label="Section details"
+      aria-label={t.panel.aria}
     >
       <div className="panel-scroll" ref={ref}>
         {!passive && (
-          <button className="panel-close" onClick={onClose} aria-label="Back to the room">
+          <button className="panel-close" onClick={onClose} aria-label={t.panel.close}>
             <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden>
               <path d="M4 4l10 10M14 4L4 14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
             </svg>

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useTheme } from "next-themes";
 import { BackButton } from "@/components/BackButton";
 import { DigitalTwin } from "@/components/DigitalTwin";
+import { useT } from "@/components/I18nProvider";
 import type { HotspotId } from "./hotspots";
 import { Panel } from "./Panels";
 import { useHotspots, useStudioData } from "./StudioData";
@@ -25,7 +26,8 @@ function hasWebGL() {
 // `actions` go first in the top bar (e.g. Edit). `back` adds a Back button; the
 // editor's preview pane leaves it out.
 export function Studio({ extra, actions, back = false }: { extra?: ReactNode; actions?: ReactNode; back?: boolean } = {}) {
-  const { profile, design, cvHref } = useStudioData();
+  const { profile, design, cvHref, sample } = useStudioData();
+  const t = useT().scene;
   const hotspots = useHotspots();
   const [active, setActive] = useState<HotspotId | null>(null);
   const [hovered, setHovered] = useState<HotspotId | null>(null);
@@ -68,17 +70,20 @@ export function Studio({ extra, actions, back = false }: { extra?: ReactNode; ac
     return () => window.removeEventListener("keydown", onKey);
   }, [close, select, hotspots]);
 
+  // A bright design stays in daylight: the room, the sky and the HUD's light
+  // colours, whatever the Lights switch says.
+  const dark = night && !design.bright;
   // The design's sky sits behind the diorama, by night or by day.
-  const sky = design.sky[night ? "night" : "day"];
+  const sky = design.sky[dark ? "night" : "day"];
   const skyVars = { "--sky-1": sky[0], "--sky-2": sky[1], "--sky-3": sky[2] } as CSSProperties;
 
   return (
     <div
-      className={`studio ${active ? "is-focused" : ""} ${active && active !== "twin" && active !== "motto" ? "has-panel" : ""} ${active === "motto" ? "is-motto" : ""}`}
+      className={`studio ${active ? "is-focused" : ""} ${active && active !== "twin" && active !== "motto" ? "has-panel" : ""} ${active === "motto" ? "is-motto" : ""} ${dark ? "" : "light"}`}
       style={skyVars}
     >
       <h1 className="sr-only">
-        {profile.name}, {profile.title}. Interactive 3D CV.
+        {t.srTitle(profile.name, profile.title)}
       </h1>
 
       <div className="studio-canvas" aria-hidden>
@@ -89,7 +94,8 @@ export function Studio({ extra, actions, back = false }: { extra?: ReactNode; ac
             setHovered={setHovered}
             onSelect={select}
             onToggleLights={toggleLights}
-            night={night}
+            fixedLight={!!design.bright}
+            night={dark}
             calm={calm}
             onReady={() => setTimeout(() => setReady(true), 250)}
           />
@@ -98,10 +104,10 @@ export function Studio({ extra, actions, back = false }: { extra?: ReactNode; ac
 
       {webgl === false && (
         <div className="no-webgl">
-          <h2>This browser can&apos;t draw the 3D studio.</h2>
-          <p>Everything in it is also on the text version of this CV.</p>
+          <h2>{t.noWebglTitle}</h2>
+          <p>{t.noWebglText}</p>
           <Link href={cvHref} className="btn-solid">
-            Open the text CV
+            {t.noWebglCta}
           </Link>
         </div>
       )}
@@ -109,14 +115,15 @@ export function Studio({ extra, actions, back = false }: { extra?: ReactNode; ac
       <header className="hud-top">
         <div className="hud-left">
           {back && (
-            <BackButton fallback="/" className="hud-link hud-back" label="Back to the previous page">
+            <BackButton fallback="/" className="hud-link hud-back" label={t.backAria}>
               <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden>
                 <path d="M10 3 5 8l5 5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-              <span className="hide-sm">Back</span>
+              <span className="hide-sm">{t.back}</span>
             </BackButton>
           )}
-          <button className="brand" onClick={close} aria-label="Back to the room overview">
+          <button className="brand" onClick={close} aria-label={t.overviewAria}>
+            {sample && <em className="sample-tag">{t.sampleTag}</em>}
             <strong>{profile.name}</strong>
             <span>{profile.subtitle}</span>
           </button>
@@ -124,24 +131,26 @@ export function Studio({ extra, actions, back = false }: { extra?: ReactNode; ac
         <div className="hud-actions">
           {actions}
           <Link href={cvHref} className="hud-link">
-            Text CV
+            {t.textCv}
           </Link>
           <a href={`mailto:${profile.email}`} className="hud-link hide-sm">
-            Email me
+            {t.emailMe}
           </a>
-          <button className="lights" onClick={toggleLights} aria-label={night ? "Turn the lights on" : "Turn the lights off"}>
-            <span className={`switch ${night ? "" : "on"}`} aria-hidden />
-            Lights
-          </button>
+          {!design.bright && (
+            <button className="lights" onClick={toggleLights} aria-label={night ? t.lightsOn : t.lightsOff}>
+              <span className={`switch ${night ? "" : "on"}`} aria-hidden />
+              {t.lights}
+            </button>
+          )}
         </div>
       </header>
 
       <p className={`hud-hint ${ready && !explored ? "show" : ""}`} aria-hidden>
-        <span className="hint-fine">Click anything in the room, or press 1–{hotspots.length}</span>
-        <span className="hint-touch">Tap anything in the room</span>
+        <span className="hint-fine">{t.hintFine(hotspots.length)}</span>
+        <span className="hint-touch">{t.hintTouch}</span>
       </p>
 
-      <nav className="dock" aria-label="Studio sections">
+      <nav className="dock" aria-label={t.dockAria}>
         {hotspots.map((h, i) => (
           <button
             key={h.id}
@@ -159,7 +168,7 @@ export function Studio({ extra, actions, back = false }: { extra?: ReactNode; ac
 
       {active === "motto" && (
         <button className="hud-link motto-back" onClick={close}>
-          Back to the room
+          {t.backToRoom}
         </button>
       )}
 
@@ -174,6 +183,7 @@ export function Studio({ extra, actions, back = false }: { extra?: ReactNode; ac
       {extra}
 
       <div className={`curtain ${ready || webgl === false ? "up" : ""}`} aria-hidden>
+        {sample && <em className="sample-tag">{t.sampleTag}</em>}
         <span>{profile.name}</span>
         <i />
       </div>

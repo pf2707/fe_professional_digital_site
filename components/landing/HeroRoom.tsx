@@ -12,10 +12,12 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import dynamic from "next/dynamic";
 import { DesignSwatch } from "@/components/scene/DesignPicker";
 import { StudioDataProvider } from "@/components/studio/StudioData";
+import { useT } from "@/components/I18nProvider";
 import type { HotspotId } from "@/components/studio/hotspots";
 import { Panel } from "@/components/studio/Panels";
 import { DESIGNS } from "@/lib/designs";
-import { lookName, placeById } from "@/lib/places";
+import { designIn, lookNameIn, placeIn } from "@/lib/i18n";
+import { placeById } from "@/lib/places";
 import type { Profile } from "@/lib/profile";
 
 const Scene = dynamic(() => import("@/components/studio/Scene"), { ssr: false });
@@ -30,6 +32,7 @@ const CLOSE_UP_SECONDS = 6; // long enough to glance at the panel
 const noop = () => {};
 
 export function HeroRoom({ profile }: { profile: Profile }) {
+  const t = useT();
   const ref = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
   const [stop, setStop] = useState(-1); // position in TOUR; -1 before the first close-up
@@ -93,6 +96,7 @@ export function HeroRoom({ profile }: { profile: Profile }) {
               setHovered={noop}
               onSelect={noop}
               onToggleLights={noop}
+              fixedLight
               night
               calm={calm}
               onReady={() => setTimeout(() => setReady(true), 250)}
@@ -103,7 +107,7 @@ export function HeroRoom({ profile }: { profile: Profile }) {
       )}
       <p className="hero-design">
         <DesignSwatch design={design} />
-        {lookName(place, design)}
+        {lookNameIn(t, placeIn(t, place), designIn(t, design))}
       </p>
     </div>
   );

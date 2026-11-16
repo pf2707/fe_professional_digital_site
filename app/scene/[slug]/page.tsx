@@ -7,6 +7,7 @@ import { OwnerEditLink } from "@/components/studio/OwnerEditLink";
 import { Studio } from "@/components/studio/Studio";
 import { StudioDataProvider } from "@/components/studio/StudioData";
 import { cvView } from "@/lib/cv-page";
+import { getDict } from "@/lib/i18n/server";
 import { twinEnabled } from "@/lib/profile";
 import { cvPath } from "@/lib/slug";
 
@@ -14,11 +15,11 @@ import { cvPath } from "@/lib/slug";
 
 export async function generateMetadata(props: PageProps<"/scene/[slug]">): Promise<Metadata> {
   const { slug } = await props.params;
-  const view = await cvView(slug);
-  if (view.kind !== "live") return { title: "CV not published", robots: { index: false } };
+  const [view, t] = await Promise.all([cvView(slug), getDict()]);
+  if (view.kind !== "live") return { title: t.scene.notPublishedTitle, robots: { index: false } };
   const p = view.cv.profile;
   return {
-    title: `${p.name} — 3D CV`,
+    title: t.scene.cvTitle(p.name),
     description: `${p.title}. ${p.tagline}`,
     robots: view.review ? { index: false } : undefined,
   };

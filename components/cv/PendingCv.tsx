@@ -1,13 +1,15 @@
 import Link from "next/link";
+import { getDict } from "@/lib/i18n/server";
 
 // Shown at /<slug> while a CV waits for the owner's approval.
-export function PendingCv() {
+export async function PendingCv() {
+  const t = (await getDict()).pending;
   return (
     <main className="notice">
-      <h1>This CV isn&apos;t live yet</h1>
-      <p>Its owner has reserved this address. The CV appears here as soon as it&apos;s approved.</p>
+      <h1>{t.title}</h1>
+      <p>{t.text}</p>
       <Link href="/" className="btn-solid">
-        Go to the home page
+        {t.home}
       </Link>
     </main>
   );

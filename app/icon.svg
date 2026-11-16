@@ -1,1 +1,27 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#0f1b33"/><path d="M14 46 32 36l18 10-18 10z" fill="#38d1c0" opacity=".5"/><path d="M14 22v24l18 10V32z" fill="#f5a945"/><path d="M50 22v24L32 56V32z" fill="#7a4e35"/><path d="M14 22 32 12l18 10-18 10z" fill="#d6cbbb"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#7ff5e8"/>
+      <stop offset="0.45" stop-color="#38d1c0" stop-opacity="0.75"/>
+      <stop offset="1" stop-color="#38d1c0" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#0f1b33"/>
+  <!-- plinth -->
+  <path d="M10 41 32 52 54 41v5L32 57 10 46z" fill="#2c3d63"/>
+  <!-- floor -->
+  <path d="M10 41 32 30l22 11-22 11z" fill="#7a4e35"/>
+  <!-- walls -->
+  <path d="M10 41V19L32 8v22z" fill="#d6cbbb"/>
+  <path d="M32 30V8l22 11v22z" fill="#b2a594"/>
+  <!-- window, lit -->
+  <path d="M38 27V17l10 5v10z" fill="#38d1c0"/>
+  <!-- framed certificate -->
+  <path d="M15 32v-8l6-3v8z" fill="#4a2f20"/>
+  <path d="M16 31v-6l4-2v6z" fill="#f4efe6"/>
+  <!-- the twin, glowing -->
+  <circle cx="31" cy="38" r="9" fill="url(#glow)"/>
+  <circle cx="31" cy="38" r="2.6" fill="#e9fffb"/>
+  <!-- lamp -->
+  <circle cx="45" cy="40" r="2" fill="#f5a945"/>
+</svg>

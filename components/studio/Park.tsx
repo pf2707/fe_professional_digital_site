@@ -12,7 +12,9 @@ import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { liveGroups } from "@/lib/profile";
+import { Robot } from "./Robot";
 import { Box, Certificate, Hologram, Hotspot, Lights, Steam, Telephone, useRoom, type RoomProps } from "./parts";
+import { useT } from "@/components/I18nProvider";
 import { useStudioData } from "./StudioData";
 import { drawLabel, drawNeon, drawNoticeBoard, drawPlank, useCanvasTexture } from "./textures";
 
@@ -129,7 +131,8 @@ function NoticeBoard({ room }: { room: RoomProps }) {
   const { C, profile } = useRoom();
   const live = new Set(liveGroups(profile).map((g) => g.key));
   const items = profile.projects.filter((p) => live.has(p.category)).map((p) => ({ icon: p.icon, name: p.name }));
-  const title = profile.studio.sections.work.title || "Notices";
+  const fallback = useT().canvas.workFallback.park;
+  const title = profile.studio.sections.work.title || fallback;
   const tex = useCanvasTexture(drawNoticeBoard(title, items, C.teal), 1200, 800, [title, JSON.stringify(items), C.teal]);
   return (
     <Hotspot id="work" room={room} labelAt={[0.4, 3.35, -3.5]}>
@@ -491,7 +494,8 @@ function Fountain({ room, twin }: { room: RoomProps; twin: boolean }) {
 function PhoneBox({ room }: { room: RoomProps }) {
   const { profile } = useRoom();
   const red = "#c2412d";
-  const sign = useCanvasTexture(drawLabel("TELEPHONE"), 512, 96, []);
+  const label = useT().canvas.telephone;
+  const sign = useCanvasTexture(drawLabel(label), 512, 96, [label]);
   return (
     <group position={[1.4, 0, 3.6]} rotation={[0, Math.PI / 4, 0]}>
       {[
@@ -527,7 +531,7 @@ function PhoneBox({ room }: { room: RoomProps }) {
 }
 
 export function Park(props: RoomProps) {
-  const { twin } = useStudioData();
+  const { twin, layout } = useStudioData();
   const withTwin = twin !== "off";
   return (
     <group>
@@ -541,6 +545,7 @@ export function Park(props: RoomProps) {
       <Bench room={props} />
       <Fountain room={props} twin={withTwin} />
       {withTwin && <Hologram room={props} at={[FOUNTAIN.x, FOUNTAIN.z]} lift={0.15} />}
+      {withTwin && <Robot room={props} path={layout.robot} />}
       <PhoneBox room={props} />
       <Tree position={[-3.3, 0, 3.75]} />
       <Bush position={[3.6, 0, 3.3]} />

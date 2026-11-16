@@ -3,6 +3,8 @@
 //  page (instant feedback) and the API (the check that counts).
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { en, type Dict } from "./i18n/en";
+
 // Paths the site itself uses, or might use later, under /scene or at the
 // root. A CV can't take these.
 const RESERVED = new Set([
@@ -33,12 +35,13 @@ export function toSlug(input: string) {
 
 // Returns why a slug can't be used, or null if its shape is fine. Whether it's
 // already taken is a separate check against the database.
-export function slugProblem(slug: string): string | null {
-  if (slug.length < SLUG_MIN) return `Use at least ${SLUG_MIN} characters.`;
-  if (slug.length > SLUG_MAX) return `Use at most ${SLUG_MAX} characters.`;
-  if (!/^[a-z0-9-]+$/.test(slug)) return "Use only lowercase letters, numbers and dashes.";
-  if (slug.startsWith("-") || slug.endsWith("-")) return "Start and end with a letter or number.";
-  if (slug.includes("--")) return "Don't put two dashes in a row.";
-  if (RESERVED.has(slug)) return "That path is reserved by the site. Try another.";
+// `e` is the messages in the visitor's language.
+export function slugProblem(slug: string, e: Dict["errors"] = en.errors): string | null {
+  if (slug.length < SLUG_MIN) return e.slugShort(SLUG_MIN);
+  if (slug.length > SLUG_MAX) return e.slugLong(SLUG_MAX);
+  if (!/^[a-z0-9-]+$/.test(slug)) return e.slugChars;
+  if (slug.startsWith("-") || slug.endsWith("-")) return e.slugEnds;
+  if (slug.includes("--")) return e.slugDashes;
+  if (RESERVED.has(slug)) return e.slugReserved;
   return null;
 }

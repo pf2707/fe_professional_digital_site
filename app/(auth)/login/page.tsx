@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
+import { getDict } from "@/lib/i18n/server";
 import { AuthForm } from "@/components/auth/AuthForm";
 
-export const metadata: Metadata = { title: "Sign in", robots: { index: false } };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getDict();
+  return { title: t.auth.signInTitle, robots: { index: false, follow: false } };
+}
 
 export default function LoginPage() {
   return <AuthForm mode="login" />;

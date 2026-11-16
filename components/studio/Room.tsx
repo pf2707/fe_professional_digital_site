@@ -9,6 +9,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Html, RoundedBox, Sparkles, useCursor } from "@react-three/drei";
 import * as THREE from "three";
+import { Robot } from "./Robot";
 import { Box, Certificate, Hologram, Hotspot, Lights, Plant, Steam, Telephone, useRoom, type RoomProps } from "./parts";
 import { useStudioData } from "./StudioData";
 import { drawCorkboard, drawLabel, drawNeon, drawSkyline, drawTerminal, useCanvasTexture } from "./textures";
@@ -109,12 +110,12 @@ function Desk({ room }: { room: RoomProps }) {
         position={[-0.1, 1.19, -3.65]}
         onPointerOver={(e) => {
           e.stopPropagation();
-          setLampHover(true);
+          if (!room.fixedLight) setLampHover(true);
         }}
         onPointerOut={() => setLampHover(false)}
         onClick={(e) => {
           e.stopPropagation();
-          room.onToggleLights();
+          if (!room.fixedLight) room.onToggleLights();
         }}
       >
         <mesh castShadow>
@@ -398,7 +399,7 @@ function ReadingCorner({ room }: { room: RoomProps }) {
 
 export function Room(props: RoomProps) {
   const { profile } = useRoom();
-  const { twin } = useStudioData();
+  const { twin, layout } = useStudioData();
   return (
     <group>
       <Lights night={props.night} calm={props.calm} />
@@ -411,6 +412,7 @@ export function Room(props: RoomProps) {
       {profile.phone && <Telephone room={props} />}
       <ReadingCorner room={props} />
       {twin !== "off" && <Hologram room={props} />}
+      {twin !== "off" && <Robot room={props} path={layout.robot} />}
       <Plant />
     </group>
   );

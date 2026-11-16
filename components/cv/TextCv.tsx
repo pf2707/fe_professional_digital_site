@@ -1,19 +1,23 @@
+"use client";
+
 import Link from "next/link";
 import { DigitalTwin } from "@/components/DigitalTwin";
+import { useT } from "@/components/I18nProvider";
+import { PdfButton } from "./PdfButton";
+import { longDate } from "@/lib/i18n";
 import { archivedGroups, liveGroups, type Profile } from "@/lib/profile";
 
 // The plain, printable version of a CV's studio: for recruiters, search
 // engines, screen readers and browsers without WebGL. Render it inside a
 // <StudioDataProvider> for the same CV, which the twin's chat needs.
+// `twin={false}` leaves out the chat button (the editor's preview).
 
-const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-
-export function TextCv({ profile, studioHref }: { profile: Profile; studioHref: string }) {
+export function TextCv({ profile, studioHref, twin = true }: { profile: Profile; studioHref: string; twin?: boolean }) {
+  const t = useT();
   return (
     <main className="doc">
       <div className="doc-top">
-        <Link href={studioHref}>Back to the 3D studio</Link>
+        <Link href={studioHref}>{t.textCv.back}</Link>
         <a href={`mailto:${profile.email}`}>{profile.email}</a>
       </div>
 
@@ -37,13 +41,14 @@ export function TextCv({ profile, studioHref }: { profile: Profile; studioHref: 
             </span>
           ))}
       </p>
+      <PdfButton profile={profile} />
 
-      <h2>Profile</h2>
+      <h2>{t.textCv.profile}</h2>
       {profile.about.map((p, i) => (
         <p key={i}>{p}</p>
       ))}
 
-      <h2>Experience</h2>
+      <h2>{t.textCv.experience}</h2>
       {profile.experience.map((e) => (
         <div key={e.role}>
           <h3>{e.role}</h3>
@@ -54,16 +59,21 @@ export function TextCv({ profile, studioHref }: { profile: Profile; studioHref: 
         </div>
       ))}
 
-      <h2>Certificates</h2>
-      <ul>
-        {profile.certificates.map((c) => (
-          <li key={c.title}>
-            {c.title} — {c.issuer}, {c.instructor}, {formatDate(c.date)}
-          </li>
-        ))}
-      </ul>
+      {profile.certificates.length > 0 && (
+        <>
+          <h2>{t.textCv.certificates}</h2>
+          <ul>
+            {profile.certificates.map((c) => (
+              <li key={c.title}>
+                {[c.title, c.issuer, c.instructor].filter(Boolean).join(" — ")}
+                {c.date && `, ${longDate(t, new Date(c.date))}`}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
 
-      <h2>Skills</h2>
+      <h2>{t.textCv.skills}</h2>
       <dl className="doc-skills">
         {profile.skills.map((s) => (
           <div key={s.group}>
@@ -73,7 +83,7 @@ export function TextCv({ profile, studioHref }: { profile: Profile; studioHref: 
         ))}
       </dl>
 
-      <h2>Projects</h2>
+      <h2>{t.textCv.projects}</h2>
       {[...liveGroups(profile), ...archivedGroups(profile)].map((g) => (
         <div key={g.key}>
           <h3>{g.label}</h3>
@@ -89,7 +99,7 @@ export function TextCv({ profile, studioHref }: { profile: Profile; studioHref: 
         </div>
       ))}
 
-      <DigitalTwin />
+      {twin && <DigitalTwin />}
     </main>
   );
 }

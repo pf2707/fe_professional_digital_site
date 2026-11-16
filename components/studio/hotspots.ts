@@ -30,6 +30,8 @@ export type Layout = {
   // The neon sign on the left wall. Clicking it flies in to read it; it has no
   // panel and isn't in the dock. The camera frames `size` metres of wall.
   motto: { center: Vec3; size: [number, number] };
+  // The digital twin robot's walk: a loop of [x, z] floor points, clear of furniture.
+  robot: [number, number][];
 };
 
 const HOME = { camera: [10.5, 8.2, 10.5] as Vec3, target: [0, 1.4, 0] as Vec3 };
@@ -49,6 +51,8 @@ export const LAYOUTS: Record<PlaceId, Layout> = {
     home: HOME,
     intro: INTRO,
     motto: { center: [-3.96, 3.62, -0.65], size: [4.2, 1.1] },
+    // Between the hologram and the armchair, clear of the desk chair and plant.
+    robot: [[-0.5, -0.9], [0.6, -0.9], [0.6, 2.5], [-1.4, 2.5], [-0.5, 1.2]],
   },
   cafe: {
     views: [
@@ -63,6 +67,8 @@ export const LAYOUTS: Record<PlaceId, Layout> = {
     home: HOME,
     intro: INTRO,
     motto: { center: [-3.96, 3.7, 1.0], size: [4.0, 1.05] },
+    // In front of the counter, then between the tables and the armchair.
+    robot: [[-0.6, -0.9], [2.4, -0.9], [0.7, 0.2], [0.5, 1.6], [-0.2, 0.9]],
   },
   park: {
     views: [
@@ -77,6 +83,8 @@ export const LAYOUTS: Record<PlaceId, Layout> = {
     home: HOME,
     intro: INTRO,
     motto: { center: [-3.85, 3.0, 1.45], size: [2.8, 0.85] },
+    // Round the fountain, on the paving; a little tighter past the bench.
+    robot: [[2.30, -0.50], [1.65, 0.35], [0.80, 1.00], [-0.26, 0.56], [-0.70, -0.50], [-0.26, -1.56], [0.80, -2.00], [1.86, -1.56]],
   },
   shop: {
     views: [
@@ -91,15 +99,17 @@ export const LAYOUTS: Record<PlaceId, Layout> = {
     home: HOME,
     intro: INTRO,
     motto: { center: [-3.96, 3.6, 1.3], size: [3.4, 0.9] },
+    // Round the hologram and the display table.
+    robot: [[-0.8, -0.4], [2.4, -0.4], [2.4, 2.3], [-0.8, 2.4]],
   },
 };
 
-export const MOTTO_HINT = "The sign — click to read it";
-
-// The dock for one CV in one place. Without a twin there's no hologram to visit.
+// The dock for one CV in one place. Without a twin there's no hologram to
+// visit, and without certificates there are no frames to look at.
 export function hotspotsFor(profile: Profile, withTwin: boolean, place: Place): Hotspot[] {
   return LAYOUTS[place.id].views
     .filter((v) => withTwin || v.id !== "twin")
+    .filter((v) => profile.certificates.length > 0 || v.id !== "certs")
     .map((v) => ({
       ...v,
       label: profile.studio.sections[v.id].label,

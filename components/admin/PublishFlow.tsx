@@ -9,11 +9,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useUser } from "@/components/auth/AuthProvider";
+import { useT } from "@/components/I18nProvider";
 import { DesignSwatch } from "@/components/scene/DesignPicker";
 import { CONTACT } from "@/lib/business";
 import { designById } from "@/lib/designs";
-import { lookName, placeById } from "@/lib/places";
 import { loadDraft, loadFromCloud } from "@/lib/draft";
+import { designIn, lookNameIn, placeIn } from "@/lib/i18n";
+import { placeById } from "@/lib/places";
 import type { CvContent } from "@/lib/profile";
 import { cvPath, SLUG_MAX, slugProblem, toSlug } from "@/lib/slug";
 
@@ -22,6 +24,8 @@ type Reserved = { slug: string; name: string; email: string };
 
 export function PublishFlow() {
   const user = useUser();
+  const all = useT();
+  const t = all.publish;
   const [draft, setDraft] = useState<CvContent | null | undefined>(undefined);
   const [origin, setOrigin] = useState("");
   const [slug, setSlug] = useState("");
@@ -35,7 +39,7 @@ export function PublishFlow() {
     const d = loadDraft(user.uid);
     setOrigin(window.location.origin);
     if (d) setSlug(toSlug(d.profile.name));
-    loadFromCloud(user)
+    loadFromCloud(user, all.errors)
       .then((saved) => {
         if (saved?.slug) setReserved({ slug: saved.slug, name: saved.profile.name, email: saved.profile.email });
       })
@@ -46,24 +50,24 @@ export function PublishFlow() {
   // Check the address as it's typed: its shape right away, then the database.
   useEffect(() => {
     if (!slug) return setCheck({ state: "idle" });
-    const problem = slugProblem(slug);
+    const problem = slugProblem(slug, all.errors);
     if (problem) return setCheck({ state: "bad", reason: problem });
     setCheck({ state: "checking" });
     const ctrl = new AbortController();
-    const t = setTimeout(async () => {
+    const timer = setTimeout(async () => {
       try {
         const res = await fetch(`/api/publish?slug=${encodeURIComponent(slug)}`, { signal: ctrl.signal });
         const { available, reason } = await res.json();
         setCheck(available ? { state: "ok" } : { state: "bad", reason });
       } catch (e) {
-        if ((e as Error).name !== "AbortError") setCheck({ state: "bad", reason: "Couldn't check this address. Try again." });
+        if ((e as Error).name !== "AbortError") setCheck({ state: "bad", reason: t.checkFailed });
       }
     }, 350);
     return () => {
-      clearTimeout(t);
+      clearTimeout(timer);
       ctrl.abort();
     };
-  }, [slug]);
+  }, [slug, all.errors, t.checkFailed]);
 
   const reserve = async () => {
     if (!draft || check.state !== "ok") return;
@@ -78,34 +82,35 @@ export function PublishFlow() {
     if (!res.ok) {
       const text = await res.text();
       if (res.status === 409) setCheck({ state: "bad", reason: text });
-      else setError(text || "Couldn't reserve this address. Try again.");
+      else setError(text || t.reserveFailed);
       return;
     }
     setReserved({ slug, name: draft.profile.name, email: draft.profile.email });
   };
 
-  if (draft === undefined) return <div className="admin-empty">Loading…</div>;
+  if (draft === undefined) return <div className="admin-empty">{all.editor.loading}</div>;
 
   return (
     <main className="publish">
       <Link href="/scene/admin" className="publish-back">
-        ← Back to the editor
+        {t.back}
       </Link>
-      <h1>Publish your CV</h1>
+      <h1>{t.title}</h1>
 
       {reserved ? (
         <Reserved reserved={reserved} origin={origin} />
       ) : !draft ? (
         <p className="publish-lede">
-          You haven&apos;t started a CV yet. <Link href="/scene/admin">Fill one in</Link> first.
+          {t.noDraft} <Link href="/scene/admin">{t.fillOne}</Link>
+          {t.first}
         </p>
       ) : (
         <>
           <Summary draft={draft} />
 
           <section className="publish-step">
-            <h2>Choose your address</h2>
-            <p className="publish-lede">This is the link you&apos;ll share. It can&apos;t be changed after it&apos;s reserved.</p>
+            <h2>{t.chooseTitle}</h2>
+            <p className="publish-lede">{t.chooseLede}</p>
             <label className="slug-field">
               <span className="slug-origin">{origin.replace(/^https?:\/\//, "")}{cvPath("")}</span>
               <input
@@ -114,29 +119,26 @@ export function PublishFlow() {
                 maxLength={SLUG_MAX}
                 spellCheck={false}
                 autoCapitalize="none"
-                aria-label="Your CV's address"
+                aria-label={t.addressAria}
                 aria-describedby="slug-status"
               />
             </label>
             <p id="slug-status" className={`slug-status ${check.state}`} role="status">
               {check.state === "checking"
-                ? "Checking…"
+                ? t.checking
                 : check.state === "ok"
-                  ? `${origin}${cvPath(slug)} is available`
+                  ? t.available(`${origin}${cvPath(slug)}`)
                   : check.state === "bad"
                     ? check.reason
-                    : "Lowercase letters, numbers and dashes, like thai-tran."}
+                    : t.shape}
             </p>
           </section>
 
           <section className="publish-step">
-            <h2>Contact us to publish</h2>
-            <p className="publish-lede">
-              Payment is handled outside the website. Reserve your address and contact us; once payment is confirmed we approve your
-              CV and it goes live at your address.
-            </p>
+            <h2>{t.contactTitle}</h2>
+            <p className="publish-lede">{t.contactLede}</p>
             <button type="button" className="publish-cta" disabled={check.state !== "ok" || sending} onClick={reserve}>
-              {sending ? "Reserving…" : "Contact us to publish"}
+              {sending ? t.reserving : t.reserve}
             </button>
             {error && <p className="f-error">{error}</p>}
           </section>
@@ -148,7 +150,8 @@ export function PublishFlow() {
 
 function Summary({ draft }: { draft: CvContent }) {
   const p = draft.profile;
-  const design = designById(p.studio.design);
+  const all = useT();
+  const design = designIn(all, designById(p.studio.design));
   return (
     <div className="publish-summary">
       {p.avatar ? (
@@ -161,7 +164,8 @@ function Summary({ draft }: { draft: CvContent }) {
         <strong>{p.name}</strong>
         <span>{p.title}</span>
         <span className="publish-design">
-          <DesignSwatch design={design} /> {lookName(placeById(p.studio.place), design)} · digital twin {p.twin.enabled === false ? "off" : "on"}
+          <DesignSwatch design={design} /> {lookNameIn(all, placeIn(all, placeById(p.studio.place)), design)} ·{" "}
+          {p.twin.enabled === false ? all.publish.twinOff : all.publish.twinOn}
         </span>
       </div>
     </div>
@@ -169,8 +173,9 @@ function Summary({ draft }: { draft: CvContent }) {
 }
 
 function Reserved({ reserved, origin }: { reserved: Reserved; origin: string }) {
+  const t = useT().publish;
   const url = `${origin}${cvPath(reserved.slug)}`;
-  const message = `Hi, I'd like to publish my 3D CV at ${url}. Name: ${reserved.name}. Email: ${reserved.email}.`;
+  const message = t.message(url, reserved.name, reserved.email);
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     try {
@@ -183,33 +188,34 @@ function Reserved({ reserved, origin }: { reserved: Reserved; origin: string }) 
   return (
     <>
       <section className="publish-step reserved">
-        <h2>{url.replace(/^https?:\/\//, "")} is reserved for you</h2>
+        <h2>{t.reservedTitle(url.replace(/^https?:\/\//, ""))}</h2>
         <p className="publish-lede">
-          Your CV is waiting for approval. Contact us to arrange payment; once it&apos;s approved, your CV goes live at{" "}
+          {t.reservedLede}
           <a href={url}>{url}</a>.
         </p>
       </section>
 
       <section className="publish-step">
-        <h2>Contact us</h2>
+        <h2>{t.contact}</h2>
         <div className="contact-options">
           <a
             className="publish-cta"
-            href={`mailto:${CONTACT.email}?subject=${encodeURIComponent(`Publish my CV: ${cvPath(reserved.slug)}`)}&body=${encodeURIComponent(message)}`}
+            href={`mailto:${CONTACT.email}?subject=${encodeURIComponent(t.subject(cvPath(reserved.slug)))}&body=${encodeURIComponent(message)}`}
           >
-            Email {CONTACT.email}
+            {t.emailUs(CONTACT.email)}
           </a>
         </div>
-        <p className="publish-lede">The email starts with this message, so we know which CV is yours. If you write from another app, copy it:</p>
+        <p className="publish-lede">{t.messageLede}</p>
         <blockquote className="contact-message">{message}</blockquote>
         <button type="button" className="ghost" onClick={copy}>
-          {copied ? "Copied" : "Copy message"}
+          {copied ? t.copied : t.copy}
         </button>
       </section>
 
       <p className="publish-note">
-        You can keep editing: until your CV is approved, every Save in the <Link href="/scene/admin">editor</Link> updates it here
-        too. After it&apos;s live, contact us to publish changes.
+        {t.noteBefore}
+        <Link href="/scene/admin">{t.noteEditor}</Link>
+        {t.noteAfter}
       </p>
     </>
   );

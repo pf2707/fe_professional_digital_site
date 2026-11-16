@@ -2,6 +2,7 @@ import { signInRequired, userFrom } from "@/lib/auth-server";
 import { updatePendingCv } from "@/lib/cv-store";
 import { draftProblem } from "@/lib/cv-validate";
 import { getDraft, saveDraft } from "@/lib/draft-store";
+import { getDict } from "@/lib/i18n/server";
 import type { CvContent } from "@/lib/profile";
 
 export const runtime = "nodejs";
@@ -24,13 +25,14 @@ export async function GET(req: Request) {
 export async function PUT(req: Request) {
   const user = await userFrom(req);
   if (!user) return signInRequired();
+  const { errors: e } = await getDict();
   let body: Partial<CvContent>;
   try {
     body = await req.json();
   } catch {
-    return new Response("The request body isn't valid JSON.", { status: 400 });
+    return new Response(e.badJson, { status: 400 });
   }
-  const problem = draftProblem(body);
+  const problem = draftProblem(body, e);
   if (problem) return new Response(problem, { status: 422 });
   const content = { profile: body.profile!, knowledge: body.knowledge! };
   const before = await getDraft(user);

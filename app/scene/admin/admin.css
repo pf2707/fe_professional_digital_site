@@ -420,14 +420,34 @@ body:has(.admin) {
   gap: 8px;
 }
 
-/* Raw JSON */
-.admin textarea.raw {
-  min-height: 60vh;
+/* Fill in from a CV PDF */
+.import-cv {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px 16px;
+  margin-bottom: 22px;
+  padding: 14px 16px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  background: var(--field);
 }
-.raw-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
+.import-cv h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+.import-cv > p {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+.f-ok {
+  color: var(--ink);
+  font-size: 14px;
+}
+@media (max-width: 560px) {
+  .import-cv {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Preview */
@@ -487,14 +507,19 @@ body:has(.admin) {
     order: 3;
     flex-basis: 100%;
   }
-  .admin-account {
-    order: 4;
-    flex-basis: 100%;
-    padding-left: 0;
-    border-left: 0;
+  /* Phones: just Cancel, Start over and Save; Save opens the preview,
+     which has Publish (DraftPreview's flow bar). No account line either. */
+  .admin-account,
+  .admin-preview-pick,
+  .admin-publish {
+    display: none;
   }
   .admin-actions {
-    flex-wrap: wrap;
+    order: 4;
+    flex-basis: 100%;
+  }
+  .admin-actions > * {
+    flex: 1;
   }
   .admin-nav {
     position: static;
@@ -937,4 +962,90 @@ body:has(.auth) {
     flex-basis: 100%;
     text-align: left;
   }
+}
+
+/* ─────────── Phone preview, opened by Save (DraftPreview's flow bar) ─────────── */
+.flow-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--paper);
+  color: var(--ink);
+  border-bottom: 1px solid #ddd3c2;
+  font-size: 14px;
+}
+.flow-back {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid #ddd3c2;
+  border-radius: 10px;
+  background: #fffdf8;
+  color: var(--ink);
+  cursor: pointer;
+}
+.flow-tabs {
+  flex: 1;
+  display: flex;
+  min-width: 0;
+  padding: 3px;
+  border-radius: 11px;
+  background: var(--paper-2);
+}
+.flow-tabs a {
+  flex: 1;
+  padding: 7px 6px;
+  border-radius: 8px;
+  color: var(--ink-dim);
+  font-weight: 500;
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.flow-tabs a[aria-current="page"] {
+  background: #fffdf8;
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(29, 36, 51, 0.12);
+}
+.flow-publish {
+  height: 38px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--paper);
+  font: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.flow-problem {
+  flex-basis: 100%;
+  margin: 0;
+  color: #a3321f;
+  font-size: 13px;
+}
+/* Make room for the bar above the studio's own header and the text CV. */
+body:has(.flow-bar) .hud-top {
+  top: 58px;
+}
+body:has(.flow-bar) .doc {
+  padding-top: 90px;
+}
+/* The text CV's "back to the studio" link and the studio's "Text CV" button
+   are the tabs in the bar. */
+body:has(.flow-bar) .doc-top a:first-child {
+  visibility: hidden;
+}
+body:has(.flow-bar) .hud-actions a[href*="view=cv"] {
+  display: none;
 }

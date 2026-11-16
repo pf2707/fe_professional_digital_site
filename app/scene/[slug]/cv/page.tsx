@@ -5,6 +5,7 @@ import { TextCv } from "@/components/cv/TextCv";
 import { ReviewBar } from "@/components/owner/ReviewBar";
 import { StudioDataProvider } from "@/components/studio/StudioData";
 import { cvView } from "@/lib/cv-page";
+import { getDict } from "@/lib/i18n/server";
 import { twinEnabled } from "@/lib/profile";
 import { cvPath } from "@/lib/slug";
 
@@ -12,8 +13,8 @@ import { cvPath } from "@/lib/slug";
 
 export async function generateMetadata(props: PageProps<"/scene/[slug]/cv">): Promise<Metadata> {
   const { slug } = await props.params;
-  const view = await cvView(slug);
-  if (view.kind !== "live") return { title: "CV not published", robots: { index: false } };
+  const [view, t] = await Promise.all([cvView(slug), getDict()]);
+  if (view.kind !== "live") return { title: t.scene.notPublishedTitle, robots: { index: false } };
   const p = view.cv.profile;
   return {
     title: `${p.name} — CV`,

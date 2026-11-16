@@ -12,35 +12,37 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
 } from "firebase/auth";
+import { useI18n } from "@/components/I18nProvider";
 import { clientAuth, firebaseConfigured } from "@/lib/firebase-client";
+import type { Dict } from "@/lib/i18n";
 import { useAuth } from "./AuthProvider";
 
 type Mode = "login" | "register";
 
 // Firebase error codes → what to tell the person.
-function explain(err: unknown) {
+function explain(err: unknown, e: Dict["auth"]["errors"]) {
   const code = (err as { code?: string }).code ?? "";
   switch (code) {
     case "auth/invalid-credential":
     case "auth/wrong-password":
     case "auth/user-not-found":
-      return "That email and password don't match an account.";
+      return e.credentials;
     case "auth/email-already-in-use":
-      return "There's already an account with this email. Sign in instead.";
+      return e.inUse;
     case "auth/weak-password":
-      return "Use a password of at least 6 characters.";
+      return e.weak;
     case "auth/invalid-email":
-      return "That doesn't look like an email address.";
+      return e.invalidEmail;
     case "auth/too-many-requests":
-      return "Too many attempts. Wait a few minutes, or reset your password.";
+      return e.tooMany;
     case "auth/operation-not-allowed":
-      return "This way of signing in isn't turned on yet.";
+      return e.notAllowed;
     case "auth/popup-blocked":
-      return "Your browser blocked the Google window. Allow pop-ups for this site and try again.";
+      return e.popup;
     case "auth/network-request-failed":
-      return "Couldn't reach the sign-in service. Check your connection.";
+      return e.network;
     default:
-      return "Something went wrong. Try again.";
+      return e.other;
   }
 }
 
@@ -51,6 +53,8 @@ export function AuthForm({ mode }: { mode: Mode }) {
   const next = useSearchParams().get("next");
   const dest = next?.startsWith("/") && !next.startsWith("//") ? next : "/scene/admin";
   const { user, loading } = useAuth();
+  const { locale, t: dict } = useI18n();
+  const t = dict.auth;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -69,7 +73,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
     try {
       await action();
     } catch (e) {
-      if (!QUIET.has((e as { code?: string }).code ?? "")) setError(explain(e));
+      if (!QUIET.has((e as { code?: string }).code ?? "")) setError(explain(e, t.errors));
     } finally {
       setBusy(false);
     }
@@ -87,10 +91,12 @@ export function AuthForm({ mode }: { mode: Mode }) {
   const google = () => run(() => signInWithPopup(clientAuth(), new GoogleAuthProvider()));
 
   const reset = () => {
-    if (!email.trim()) return setError("Enter your email above first, then choose “Forgot password?”.");
+    if (!email.trim()) return setError(t.resetFirst);
     run(async () => {
+      // Firebase writes the email in the visitor's language.
+      clientAuth().languageCode = locale;
       await sendPasswordResetEmail(clientAuth(), email.trim());
-      setInfo(`We sent a link to reset your password to ${email.trim()}.`);
+      setInfo(t.resetSent(email.trim()));
     });
   };
 
@@ -99,23 +105,18 @@ export function AuthForm({ mode }: { mode: Mode }) {
   if (!firebaseConfigured)
     return (
       <main className="notice">
-        <h1>Sign-in isn&apos;t set up yet</h1>
-        <p>
-          Add the Firebase web app config (the <code>NEXT_PUBLIC_FIREBASE_*</code> values) to <code>.env.local</code> and restart
-          the server.
-        </p>
+        <h1>{t.notSetUpTitle}</h1>
+        <p>{t.notSetUpText}</p>
       </main>
     );
 
   return (
     <main className="auth">
       <Link href="/" className="auth-home">
-        3D CV
+        {dict.site.name}
       </Link>
-      <h1>{mode === "login" ? "Sign in" : "Create your account"}</h1>
-      <p className="auth-lede">
-        {mode === "login" ? "Sign in to edit and publish your CV." : "An account keeps your CV safe and lets you edit it from any device."}
-      </p>
+      <h1>{mode === "login" ? t.signInTitle : t.registerTitle}</h1>
+      <p className="auth-lede">{mode === "login" ? t.signInLede : t.registerLede}</p>
 
       <button type="button" className="auth-google" onClick={google} disabled={busy}>
         <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden>
@@ -124,18 +125,18 @@ export function AuthForm({ mode }: { mode: Mode }) {
           <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z" />
           <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z" />
         </svg>
-        Continue with Google
+        {t.google}
       </button>
 
-      <p className="auth-or">or with email</p>
+      <p className="auth-or">{t.or}</p>
 
       <form onSubmit={submit} className="auth-form">
         <label>
-          <span>Email</span>
+          <span>{t.email}</span>
           <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
         </label>
         <label>
-          <span>Password</span>
+          <span>{t.password}</span>
           <input
             type="password"
             autoComplete={mode === "login" ? "current-password" : "new-password"}
@@ -147,7 +148,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
         </label>
         {mode === "login" && (
           <button type="button" className="auth-link" onClick={reset} disabled={busy}>
-            Forgot password?
+            {t.forgot}
           </button>
         )}
         {error && (
@@ -157,13 +158,13 @@ export function AuthForm({ mode }: { mode: Mode }) {
         )}
         {info && <p className="auth-info">{info}</p>}
         <button type="submit" className="auth-submit" disabled={busy}>
-          {busy ? "One moment…" : mode === "login" ? "Sign in" : "Create account"}
+          {busy ? t.busy : mode === "login" ? t.signIn : t.create}
         </button>
       </form>
 
       <p className="auth-switch">
-        {mode === "login" ? "New here? " : "Already have an account? "}
-        <Link href={other}>{mode === "login" ? "Create an account" : "Sign in"}</Link>
+        {mode === "login" ? t.newHere : t.haveAccount}
+        <Link href={other}>{mode === "login" ? t.createLink : t.signInLink}</Link>
       </p>
     </main>
   );

@@ -34,8 +34,12 @@
   --teal: #38d1c0;
   --teal-deep: #0f6e66;
   --display: var(--font-display), "Avenir Next", system-ui, sans-serif;
-  --body: var(--font-body), system-ui, sans-serif;
+  --body: var(--font-body), var(--font-body-vi), system-ui, sans-serif;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+/* Instrument Sans has no Vietnamese letters (lib/i18n, app/layout.tsx). */
+:root:lang(vi) {
+  --body: var(--font-body-vi), system-ui, sans-serif;
 }
 
 * {
@@ -93,6 +97,8 @@ button {
   background:
     radial-gradient(120% 80% at 70% 10%, var(--sky-2) 0%, transparent 60%),
     linear-gradient(180deg, var(--sky-1) 0%, var(--sky-2) 55%, var(--sky-3) 100%);
+  /* Its own, not the page's: a bright design makes the studio light at night. */
+  color: var(--on-sky);
   transition: background 0.6s ease;
 }
 
@@ -134,6 +140,46 @@ button {
 .brand span {
   font-size: 13px;
   color: var(--on-sky-dim);
+}
+/* "Digital Twin", above the walking robot */
+.robot-tag {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+  color: var(--on-sky);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  backdrop-filter: blur(6px);
+  user-select: none;
+}
+
+/* "Sample CV", above the name on /scene and on its curtain */
+.sample-tag {
+  justify-self: start;
+  padding: 3px 9px;
+  border: 1px solid var(--amber);
+  border-radius: 999px;
+  color: var(--amber);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.curtain .curtain-note {
+  font-family: var(--body);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0;
+  font-variation-settings: normal;
+  color: var(--on-sky-dim);
+}
+.curtain .sample-tag {
+  justify-self: center;
+  margin-bottom: -6px;
+  font-size: 13px;
 }
 
 .hud-left {
@@ -900,7 +946,7 @@ button {
   .dock {
     left: 16px;
     right: 16px;
-    bottom: 16px;
+    bottom: 24px; /* above the copyright line */
     transform: none;
     overflow-x: auto;
     scrollbar-width: none;
@@ -1027,7 +1073,34 @@ body:has(.doc) {
     gap: 2px;
   }
 }
+.doc-pdf {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+}
+.doc-pdf button {
+  height: 40px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--paper);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.doc-pdf button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+.doc-pdf span {
+  color: #a3321f;
+  font-size: 14px;
+}
 @media print {
+  .doc-pdf,
   .doc-top,
   .chat-fab,
   .chat-panel {
@@ -1281,12 +1354,25 @@ body:has(.notice) {
 
 /* ─────────────────────────── Copyright line ─────────────────────────── */
 .site-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px 16px;
   padding: 14px 20px 20px;
-  text-align: center;
   font-size: 12px;
   color: var(--ink-dim);
 }
-/* Over the full-screen 3D studio it sits in the strip under the dock. */
+.site-footer a {
+  color: inherit;
+  text-underline-offset: 3px;
+}
+/* The landing and legal pages have the full footer instead. */
+body:has(.site-foot) .site-footer {
+  display: none;
+}
+/* Over the full-screen 3D studio it sits in the strip under the dock; only its
+   links take clicks, so the scene still gets the rest. */
 body:has(.studio) .site-footer {
   position: fixed;
   left: 0;
@@ -1296,13 +1382,158 @@ body:has(.studio) .site-footer {
   padding: 0;
   font-size: 11px;
   color: var(--on-sky);
-  opacity: 0.55;
+  pointer-events: none;
+}
+body:has(.studio) .site-footer > * {
+  opacity: 0.6;
+  pointer-events: auto;
+}
+body:has(.studio) .site-footer > *:hover,
+body:has(.studio) .site-footer > *:focus-within {
+  opacity: 1;
+}
+body:has(.studio) .site-footer > span {
   pointer-events: none;
 }
 @media (max-width: 820px) {
+  /* One line under the dock: the copyright and the language. Privacy and
+     terms are a tap away on the home page. */
   body:has(.studio) .site-footer {
-    bottom: 2px;
+    bottom: 3px;
+    gap: 10px;
     font-size: 10px;
+  }
+  body:has(.studio) .site-footer > a {
+    display: none;
+  }
+  body:has(.studio) .site-footer .lang-switch {
+    padding: 1px;
+  }
+  body:has(.studio) .site-footer .lang-switch button {
+    min-width: 24px;
+    padding: 0 6px;
+    font-size: 9px;
+  }
+}
+
+/* ─────────────────────────── Language switch ─────────────────────────── */
+/* --fg is the text and the chosen language's pill; --bg the text on that pill. */
+.lang-switch {
+  --fg: var(--ink-dim);
+  --bg: var(--paper);
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--fg);
+  border-radius: 999px;
+  color: var(--fg);
+}
+.lang-switch button {
+  min-width: 30px;
+  padding: 1px 8px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+.lang-switch button[aria-pressed="true"] {
+  background: var(--fg);
+  color: var(--bg);
+}
+.lang-switch[aria-busy="true"] {
+  opacity: 0.6;
+}
+.lang-switch button:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 1px;
+}
+body:has(.studio) .lang-switch {
+  --fg: var(--on-sky);
+  --bg: var(--sky-1);
+}
+.lang-switch.on-sky {
+  --fg: #ece6da;
+  --bg: #0f1b33;
+}
+.lang-switch.on-paper {
+  --fg: var(--ink);
+  --bg: var(--paper-2);
+}
+.lang-switch.on-sky button,
+.lang-switch.on-paper button {
+  padding: 4px 11px;
+  font-size: 12px;
+}
+
+/* ───────────────── The full footer (landing, legal pages) ───────────────── */
+.site-foot {
+  margin-top: clamp(24px, 4vw, 48px);
+  border-top: 2px solid var(--ink);
+  background: var(--paper-2);
+  color: var(--ink);
+}
+.site-foot-inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1.1fr) auto;
+  gap: 40px clamp(24px, 4vw, 56px);
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 56px clamp(20px, 5vw, 64px) 28px;
+}
+.site-foot-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--display);
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: inherit;
+  text-decoration: none;
+}
+.site-foot-brand p {
+  max-width: 34ch;
+  margin: 12px 0 20px;
+  color: var(--ink-dim);
+}
+.site-foot h2 {
+  margin-bottom: 12px;
+  font-family: var(--display);
+  font-size: 15px;
+  font-weight: 700;
+}
+.site-foot ul {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+}
+.site-foot li a {
+  color: var(--ink-dim);
+  text-decoration: none;
+  overflow-wrap: break-word;
+}
+.site-foot li a:hover {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.site-foot-copy {
+  grid-column: 1 / -1;
+  padding-top: 18px;
+  border-top: 1px solid var(--rule);
+  font-size: 13px;
+  color: var(--ink-dim);
+}
+@media (max-width: 820px) {
+  .site-foot-inner {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .site-foot-brand {
+    grid-column: 1 / -1;
   }
 }
 
@@ -1467,6 +1698,9 @@ body:has(.landing) {
   padding: 24px clamp(20px, 5vw, 64px);
 }
 .hero-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   font-family: var(--display);
   font-weight: 800;
   font-size: 20px;
@@ -1474,10 +1708,43 @@ body:has(.landing) {
   color: inherit;
   text-decoration: none;
 }
+.hero-top-end {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
 .hero-signin {
   font-size: 15px;
   color: inherit;
+  white-space: nowrap;
   text-underline-offset: 4px;
+}
+/* Phones: the brand, the language and Sign in on one row. */
+@media (max-width: 480px) {
+  .hero-top {
+    gap: 10px;
+    padding: 20px 16px;
+  }
+  .hero-brand {
+    gap: 8px;
+    font-size: 16px;
+    white-space: nowrap;
+  }
+  .hero-brand img {
+    width: 28px;
+    height: 28px;
+  }
+  .hero-top-end {
+    gap: 12px;
+  }
+  .lang-switch.on-sky button {
+    min-width: 26px;
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+  .hero-signin {
+    font-size: 14px;
+  }
 }
 
 .hero-copy {
@@ -1489,12 +1756,16 @@ body:has(.landing) {
 }
 .hero-copy h1 {
   font-family: var(--display);
-  font-size: clamp(48px, 6.6vw, 104px);
+  font-size: clamp(48px, 5.6vw, 88px);
   font-weight: 800;
   font-stretch: 82%;
   font-variation-settings: "wdth" 82, "opsz" 96;
   line-height: 0.94;
   letter-spacing: -0.015em;
+}
+.hero-copy h1 span {
+  /* one sentence per block, each balanced so neither ends on a lone word */
+  display: block;
   text-wrap: balance;
 }
 .hero-copy p {
@@ -1667,6 +1938,24 @@ body:has(.landing) {
   max-width: 46ch;
   color: var(--ink-dim);
 }
+.places-all {
+  display: inline-flex;
+  align-items: center;
+  height: 54px;
+  margin-top: 48px;
+  padding: 0 26px;
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 16px;
+  text-decoration: none;
+  transition: background 0.2s, color 0.2s;
+}
+.places-all:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
 @media (max-width: 820px) {
   .places ul {
     grid-template-columns: 1fr;
@@ -1744,5 +2033,119 @@ body:has(.landing) {
   .hero-canvas,
   .hero-cta {
     transition: none;
+  }
+}
+
+/* ─────────────────────── Privacy policy, terms of use ─────────────────────── */
+body:has(.legal) {
+  background: var(--paper);
+}
+.legal {
+  color: var(--ink);
+}
+.legal-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 24px clamp(20px, 5vw, 64px);
+}
+.legal-main {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: clamp(32px, 6vw, 72px) clamp(20px, 5vw, 64px) 0;
+}
+.legal-main h1 {
+  font-family: var(--display);
+  font-size: clamp(40px, 6vw, 72px);
+  font-weight: 800;
+  font-stretch: 85%;
+  font-variation-settings: "wdth" 85;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+.legal-updated {
+  margin-top: 14px;
+  font-size: 14px;
+  color: var(--ink-dim);
+}
+.legal-lede {
+  max-width: 62ch;
+  margin-top: 24px;
+  font-size: 19px;
+  line-height: 1.5;
+}
+.legal-body {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: clamp(32px, 6vw, 80px);
+  margin-top: 56px;
+  padding-top: 32px;
+  border-top: 2px solid var(--ink);
+}
+.legal-toc {
+  position: sticky;
+  top: 24px;
+  align-self: start;
+}
+.legal-toc ol {
+  display: grid;
+  gap: 8px;
+  padding-left: 1.4em;
+  font-size: 14px;
+  color: var(--ink-dim);
+}
+.legal-toc a {
+  color: inherit;
+  text-decoration: none;
+}
+.legal-toc a:hover {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.legal-body section {
+  max-width: 66ch;
+  scroll-margin-top: 24px;
+}
+.legal-body section + section {
+  margin-top: 40px;
+}
+.legal-body h2 {
+  margin-bottom: 12px;
+  font-family: var(--display);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.legal-body p,
+.legal-body ul {
+  color: #3a4255;
+}
+.legal-body p + p,
+.legal-body p + ul,
+.legal-body ul + p {
+  margin-top: 12px;
+}
+.legal-body ul {
+  display: grid;
+  gap: 8px;
+  padding-left: 1.2em;
+}
+.legal-other {
+  margin-top: 48px;
+}
+.legal-other a {
+  color: var(--amber-ink);
+  font-weight: 600;
+  text-underline-offset: 3px;
+}
+@media (max-width: 820px) {
+  .legal-body {
+    grid-template-columns: 1fr;
+  }
+  .legal-toc {
+    position: static;
   }
 }

@@ -12,7 +12,8 @@ import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import { Billboard, Float, Html, RoundedBox, useCursor, useTexture } from "@react-three/drei";
 import * as THREE from "three";
 import type { Certificate } from "@/lib/profile";
-import { MOTTO_HINT, type HotspotId } from "./hotspots";
+import { useT } from "@/components/I18nProvider";
+import type { HotspotId } from "./hotspots";
 import { useHotspots, useStudioData } from "./StudioData";
 import { drawCertificate, drawInitials, useCanvasTexture } from "./textures";
 
@@ -28,6 +29,7 @@ export type RoomProps = {
   setHovered: (id: HotspotId | null) => void;
   onSelect: (id: HotspotId) => void;
   onToggleLights: () => void;
+  fixedLight: boolean; // a bright design: always lit, so the lights can't be switched
   night: boolean;
   calm: boolean; // prefers-reduced-motion
 };
@@ -82,7 +84,8 @@ export function Hotspot({
   });
 
   const hotspots = useHotspots();
-  const hint = id === "motto" ? MOTTO_HINT : (hotspots.find((h) => h.id === id)?.hint ?? "");
+  const mottoHint = useT().scene.mottoHint;
+  const hint = id === "motto" ? mottoHint : (hotspots.find((h) => h.id === id)?.hint ?? "");
 
   return (
     <group
@@ -172,6 +175,7 @@ export function Telephone({
   rotation?: [number, number, number];
 }) {
   const { C, profile } = useRoom();
+  const callMe = useT().scene.callMe(profile.phone ?? "");
   const body = useRef<THREE.Group>(null);
   const handset = useRef<THREE.Group>(null);
   const waves = useRef<THREE.Mesh[]>([]);
@@ -266,7 +270,7 @@ export function Telephone({
       ))}
       {hover && (
         <Html position={[0, 0.85, 0]} center zIndexRange={[20, 0]} style={{ pointerEvents: "none" }}>
-          <div className="scene-label">Call me · {profile.phone}</div>
+          <div className="scene-label">{callMe}</div>
         </Html>
       )}
     </group>
@@ -317,20 +321,30 @@ function InitialsFace() {
   return <HoloDisc map={map} />;
 }
 
+// The photo in its own colours, so the face reads clearly and looks like the
+// person, with a soft glow behind it and a lit rim to say "hologram".
 function HoloDisc({ map }: { map: THREE.Texture }) {
+  const { C } = useRoom();
+  const rim = new THREE.Color(C.teal).multiplyScalar(1.6);
+  if (map.colorSpace !== THREE.SRGBColorSpace) {
+    map.colorSpace = THREE.SRGBColorSpace;
+    map.needsUpdate = true;
+  }
   return (
-    <mesh>
-      <circleGeometry args={[0.36, 48]} />
-      <meshBasicMaterial
-        map={map}
-        color={[0.55, 1.6, 1.5]}
-        transparent
-        opacity={0.9}
-        blending={THREE.AdditiveBlending}
-        toneMapped={false}
-        depthWrite={false}
-      />
-    </mesh>
+    <group>
+      <mesh position={[0, 0, -0.01]}>
+        <circleGeometry args={[0.5, 48]} />
+        <meshBasicMaterial color={C.teal} transparent opacity={0.22} blending={THREE.AdditiveBlending} toneMapped={false} depthWrite={false} />
+      </mesh>
+      <mesh>
+        <circleGeometry args={[0.42, 64]} />
+        <meshBasicMaterial map={map} transparent opacity={0.97} toneMapped={false} depthWrite={false} />
+      </mesh>
+      <mesh position={[0, 0, 0.005]}>
+        <ringGeometry args={[0.42, 0.445, 64]} />
+        <meshBasicMaterial color={rim} toneMapped={false} />
+      </mesh>
+    </group>
   );
 }
 
@@ -372,17 +386,18 @@ export function Hologram({
         <Float speed={room.calm ? 0 : 2} floatIntensity={room.calm ? 0 : 0.6} rotationIntensity={0}>
           <Billboard position={[x, 1.55, z]}>{profile.avatar ? <PhotoFace src={profile.avatar} /> : <InitialsFace />}</Billboard>
           <group ref={rings} position={[x, 1.55, z]}>
+            {/* Faint, so where they pass in front of the face it still reads clearly. */}
             <mesh rotation={[Math.PI / 2.3, 0, 0]}>
-              <torusGeometry args={[0.52, 0.008, 8, 80]} />
-              <meshBasicMaterial color={glow} toneMapped={false} />
+              <torusGeometry args={[0.56, 0.007, 8, 80]} />
+              <meshBasicMaterial color={glow} transparent opacity={0.35} toneMapped={false} depthWrite={false} />
             </mesh>
             <mesh rotation={[Math.PI / 1.7, 0.6, 0]}>
-              <torusGeometry args={[0.6, 0.006, 8, 80]} />
-              <meshBasicMaterial color={glow} toneMapped={false} />
+              <torusGeometry args={[0.64, 0.005, 8, 80]} />
+              <meshBasicMaterial color={glow} transparent opacity={0.3} toneMapped={false} depthWrite={false} />
             </mesh>
             <mesh>
               <icosahedronGeometry args={[0.7, 1]} />
-              <meshBasicMaterial color={C.teal} wireframe transparent opacity={0.12} />
+              <meshBasicMaterial color={C.teal} wireframe transparent opacity={0.05} />
             </mesh>
           </group>
         </Float>
@@ -430,6 +445,8 @@ export function Lights({
   const lamp = useRef<THREE.PointLight>(null);
   const key = useRef<THREE.DirectionalLight>(null);
   const hemi = useRef<THREE.HemisphereLight>(null);
+  // A bright design fills the room with more daylight.
+  const boost = useStudioData().design.bright ? 1.35 : 1;
 
   useFrame(({ clock }) => {
     const t = clock.elapsedTime;
@@ -437,8 +454,8 @@ export function Lights({
     let power = calm ? 1 : THREE.MathUtils.smoothstep(t, 0.8, 2.2);
     if (!calm && t > 0.8 && t < 2.0 && Math.sin(t * 47) > 0.55) power *= 0.25;
     if (lamp.current) lamp.current.intensity = (night ? 7 : 1.5) * power;
-    if (key.current) key.current.intensity = (night ? 0.6 : 2.4) * (0.35 + 0.65 * power);
-    if (hemi.current) hemi.current.intensity = (night ? 0.6 : 1.1) * (0.4 + 0.6 * power);
+    if (key.current) key.current.intensity = (night ? 0.6 : 2.4 * boost) * (0.35 + 0.65 * power);
+    if (hemi.current) hemi.current.intensity = (night ? 0.6 : 1.1 * boost) * (0.4 + 0.6 * power);
   });
 
   return (

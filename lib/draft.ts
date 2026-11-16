@@ -8,6 +8,7 @@
 import blankKnowledge from "@/data/templates/twin-knowledge.json";
 import blankProfile from "@/data/templates/profile.json";
 import type { User } from "firebase/auth";
+import { en, type Dict } from "./i18n/en";
 import type { CvContent, Profile, TwinKnowledge } from "./profile";
 
 // One working copy per account, so two people sharing a browser don't see each other's CV.
@@ -48,19 +49,31 @@ async function api(user: User, init?: RequestInit) {
 }
 
 // The account's saved CV, or null before its first save.
-export async function loadFromCloud(user: User): Promise<SavedCv | null> {
+export async function loadFromCloud(user: User, e: Dict["errors"] = en.errors): Promise<SavedCv | null> {
   const res = await api(user);
   if (res.status === 404) return null;
-  if (!res.ok) throw new Error("Couldn't load your saved CV. Reload the page to try again.");
+  if (!res.ok) throw new Error(e.loadFailed);
   return res.json();
 }
 
 // Saves to the database. Says what happened to the account's published CV, if it has one.
-export async function saveToCloud(user: User, content: CvContent): Promise<{ cv: "updated" | "live" | null; slug: string | null }> {
+export async function saveToCloud(
+  user: User,
+  content: CvContent,
+  e: Dict["errors"] = en.errors,
+): Promise<{ cv: "updated" | "live" | null; slug: string | null }> {
   const res = await api(user, { method: "PUT", body: JSON.stringify({ profile: content.profile, knowledge: content.knowledge }) });
-  if (!res.ok) throw new Error((await res.text()) || "Couldn't save. Check your connection and try again.");
+  if (!res.ok) throw new Error((await res.text()) || e.saveFailed);
   return res.json();
 }
+
+// What the blank template used to put in the twin's knowledge. Older drafts
+// still carry it; it isn't about the person, so the twin never sees it.
+const OLD_TEMPLATE_TEXT = new Set([
+  "Software Engineer, looking for the next role.",
+  "A few sentences the twin uses to introduce the person.",
+  "Paste the person's CV text here.",
+]);
 
 // Drop blank lines and items left over from editing.
 export function cleanCv(c: CvContent): CvContent {
@@ -72,6 +85,10 @@ export function cleanCv(c: CvContent): CvContent {
   n.profile.phone = (n.profile.phone ?? "").trim();
   n.profile.twin.suggestions = nonEmpty(n.profile.twin.suggestions);
   n.profile.skills = n.profile.skills.map((g) => ({ ...g, items: nonEmpty(g.items) }));
+  const real = (v: string) => (OLD_TEMPLATE_TEXT.has(v.trim()) ? "" : v);
+  n.knowledge.currentGoal = real(n.knowledge.currentGoal);
+  n.knowledge.summary = real(n.knowledge.summary);
+  n.knowledge.sources = n.knowledge.sources.filter((s) => real(s.content).trim());
   n.profile.certificates = n.profile.certificates.map((cert) => {
     const out = { ...cert };
     if (!out.note?.trim()) delete out.note;

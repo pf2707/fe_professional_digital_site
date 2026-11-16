@@ -1,7 +1,9 @@
 "use client";
 
 import Image from "next/image";
+import { useT } from "@/components/I18nProvider";
 import { DESIGNS, type Design } from "@/lib/designs";
+import { designIn, placeIn } from "@/lib/i18n";
 import { PLACES } from "@/lib/places";
 
 // A round swatch: the walls, the wood and the design's two lights.
@@ -19,11 +21,12 @@ export function DesignSwatch({ design }: { design: Design }) {
 // Left of the scene on /scene: one picture card per place. It scrolls, so more
 // places can be added. Each place's picture is public/places/<id>.webp.
 export function PlacePicker({ value, onChange }: { value: string; onChange: (id: string) => void }) {
+  const t = useT();
   return (
-    <nav className="place-rail" aria-label="Places">
-      <p className="rail-title">Place</p>
+    <nav className="place-rail" aria-label={t.scene.placesRail}>
+      <p className="rail-title">{t.scene.place}</p>
       <div className="place-list">
-        {PLACES.map((p) => (
+        {PLACES.map((pl) => placeIn(t, pl)).map((p) => (
           <button
             key={p.id}
             type="button"
@@ -43,10 +46,11 @@ export function PlacePicker({ value, onChange }: { value: string; onChange: (id:
 
 // Right of the scene on /scene: the colours, which work in every place.
 export function ColourPicker({ value, onChange }: { value: string; onChange: (id: string) => void }) {
+  const t = useT();
   return (
-    <nav className="colour-rail" aria-label="Colours">
-      <p className="rail-title">Colours</p>
-      {DESIGNS.map((d) => (
+    <nav className="colour-rail" aria-label={t.scene.coloursRail}>
+      <p className="rail-title">{t.scene.colours}</p>
+      {DESIGNS.map((ds) => designIn(t, ds)).map((d) => (
         <button
           key={d.id}
           type="button"

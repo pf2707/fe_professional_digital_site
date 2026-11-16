@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import ReactMarkdown from "react-markdown";
 import { useStudioData } from "@/components/studio/StudioData";
-import { PREVIEW_QUESTIONS, previewLimitMessage } from "@/lib/premium";
+import { CONTACT } from "@/lib/business";
+import { PREVIEW_QUESTIONS } from "@/lib/premium";
+import { useT } from "./I18nProvider";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -19,6 +21,7 @@ export function DigitalTwin({
   launcher?: boolean;
 } = {}) {
   const { profile, slug, twin, preview } = useStudioData();
+  const t = useT();
   const [openState, setOpenState] = useState(false);
   const open = openProp ?? openState;
   const setOpen = (next: boolean | ((o: boolean) => boolean)) => {
@@ -61,7 +64,7 @@ export function DigitalTwin({
 
     // In the editor's preview the twin answers a couple of questions as a trial.
     if (twin === "preview" && (!preview || next.filter((m) => m.role === "user").length > PREVIEW_QUESTIONS)) {
-      setMessages([...next, { role: "assistant", content: previewLimitMessage }]);
+      setMessages([...next, { role: "assistant", content: t.premium.limit(CONTACT.email) }]);
       return;
     }
     setLoading(true);
@@ -78,7 +81,7 @@ export function DigitalTwin({
         },
         body: JSON.stringify(
           twin === "preview" && preview
-            ? { preview: { name: profile.name, knowledge: preview.knowledge }, messages: history }
+            ? { preview: { profile: { ...profile, avatar: "" }, knowledge: preview.knowledge }, messages: history }
             : { slug, messages: history },
         ),
       });
@@ -87,7 +90,7 @@ export function DigitalTwin({
         const errText = await res.text();
         setMessages((m) => [
           ...m,
-          { role: "assistant", content: errText || "Something went wrong." },
+          { role: "assistant", content: errText || t.twin.error },
         ]);
         setLoading(false);
         return;
@@ -114,7 +117,7 @@ export function DigitalTwin({
     } catch {
       setMessages((m) => [
         ...m,
-        { role: "assistant", content: "Network error — please try again." },
+        { role: "assistant", content: t.twin.network },
       ]);
     } finally {
       setLoading(false);
@@ -130,16 +133,16 @@ export function DigitalTwin({
           type="button"
           className="chat-fab"
           onClick={() => setOpen((o) => !o)}
-          aria-label="Open the digital twin chat"
+          aria-label={t.twin.open}
         >
-          <span className="pulse" /> Ask my Digital Twin
+          <span className="pulse" /> {t.twin.fab}
         </button>
       )}
 
       <div
         className={`chat-panel ${open ? "open" : ""}`}
         role="dialog"
-        aria-label="Digital twin chat"
+        aria-label={t.twin.dialog}
       >
         <div className="chat-header">
           <div className="mini-avatar">
@@ -156,13 +159,13 @@ export function DigitalTwin({
             )}
           </div>
           <div>
-            <h4>{profile.name}&apos;s Twin</h4>
-            <p>● Online · AI assistant</p>
+            <h4>{t.twin.title(profile.name)}</h4>
+            <p>{t.twin.status}</p>
           </div>
           <button
             className="chat-close"
             onClick={() => setOpen(false)}
-            aria-label="Close chat"
+            aria-label={t.twin.close}
           >
             ×
           </button>
@@ -211,12 +214,12 @@ export function DigitalTwin({
           <input
             type="text"
             value={input}
-            placeholder="Type your question..."
+            placeholder={t.twin.placeholder}
             onChange={(e) => setInput(e.target.value)}
             disabled={loading}
           />
           <button type="submit" disabled={loading || !input.trim()}>
-            {loading ? "…" : "Send"}
+            {loading ? "…" : t.twin.send}
           </button>
         </form>
       </div>

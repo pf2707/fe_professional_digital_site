@@ -26,6 +26,9 @@ export type Design = {
   palette: Palette;
   // Page background behind the room: [top, middle, bottom].
   sky: { night: [string, string, string]; day: [string, string, string] };
+  // Always in daylight: the room and background stay bright whatever the
+  // Lights switch says, so the switch is hidden.
+  bright?: boolean;
 };
 
 export const DESIGNS: Design[] = [
@@ -104,6 +107,26 @@ export const DESIGNS: Design[] = [
       rug: "#3e5a3a",
     },
     sky: { night: ["#0e1a14", "#1d2d22", "#3a3a2a"], day: ["#c4dbc7", "#e2eadb", "#efe3c8"] },
+  },
+  {
+    id: "daylight",
+    name: "Daylight",
+    blurb: "White walls, light oak, sunshine all day.",
+    palette: {
+      wall: "#f7f3ec",
+      wallNight: "#f7f3ec",
+      floor: "#d4b08a",
+      base: "#a9c1d6",
+      wood: "#d9b48a",
+      woodDark: "#a98159",
+      metal: "#6b7890",
+      amber: "#ffb84d",
+      teal: "#2fb6e0",
+      velvet: "#e8b04f",
+      rug: "#8cc0d6",
+    },
+    sky: { night: ["#d3e8fa", "#eaf4fb", "#fdf3e3"], day: ["#d3e8fa", "#eaf4fb", "#fdf3e3"] },
+    bright: true,
   },
 ];
 

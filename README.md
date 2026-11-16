@@ -30,6 +30,7 @@ publish it. Built with Next.js (App Router), React Three Fiber, Firestore and Op
 | `/scene/<slug>` | A published CV (once approved) |
 | `/owner` | Site owner only: pending CVs, open each one, approve it |
 | `/scene/<slug>/cv` | That CV as plain text, for recruiters, search engines and browsers without WebGL |
+| `/privacy`, `/terms` | Privacy policy and terms of use (`lib/legal.ts`) |
 
 ## Run locally
 
@@ -124,7 +125,26 @@ To add a place: add it to `PLACES`, give it a layout in `LAYOUTS`, build its sce
 `parts.tsx`, pick it in `Scene.tsx`, and add a picture of it as `public/places/<id>.webp`
 (a screenshot of the scene, about 1170×780). It then appears in the place picker on
 `/scene` and in the editor; to show it on the landing page too, add it to `SHOWN` in
-`app/page.tsx`.
+`app/page.tsx`. Its name, blurb and object names go in both dictionaries (`places` in
+`lib/i18n/en.ts` and `vi.ts`), and its landing caption under `landing.places`.
+
+## English and Vietnamese
+
+The site's own wording is in `lib/i18n/en.ts` and `lib/i18n/vi.ts` (TypeScript checks that
+Vietnamese has every key English has). The visitor's choice is a `lang` cookie, set by the
+EN / VI switch in the footer and on the landing page; before they choose, their browser's
+language decides. URLs don't change, so a published CV's link works in both languages.
+
+- Server code: `getDict()` / `getLocale()` from `lib/i18n/server.ts`.
+- Client code: `useT()` from `components/I18nProvider.tsx`.
+- What people write in their CV is shown as written; only the site around it is translated.
+  The twin replies in the language the visitor writes in.
+- `/owner` is for the site owner only and stays in English.
+- Vietnamese pages use Be Vietnam Pro for body text (Instrument Sans has no Vietnamese letters).
+
+The privacy policy and terms (`lib/legal.ts`) describe what the site does today: Firebase,
+Vercel, OpenRouter/Gemini, the cookies it sets. Update them, and `LEGAL_UPDATED`, when that
+changes, and have a lawyer review them.
 
 ## Refresh the sample twin's knowledge from `digital_twin`
 

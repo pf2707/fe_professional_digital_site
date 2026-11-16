@@ -14,7 +14,9 @@ import { useFrame } from "@react-three/fiber";
 import { RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
 import { liveGroups } from "@/lib/profile";
+import { Robot } from "./Robot";
 import { Box, Certificate, Hologram, Hotspot, Lights, Plant, Telephone, useRoom, type RoomProps } from "./parts";
+import { useT } from "@/components/I18nProvider";
 import { useStudioData } from "./StudioData";
 import {
   drawCalendar,
@@ -77,7 +79,8 @@ function ShopWindow({ room }: { room: RoomProps }) {
   const { C, profile } = useRoom();
   const live = new Set(liveGroups(profile).map((g) => g.key));
   const items = profile.projects.filter((p) => live.has(p.category)).map((p) => ({ icon: p.icon, name: p.name }));
-  const title = profile.studio.sections.work.title || "New in";
+  const fallback = useT().canvas.workFallback.shop;
+  const title = profile.studio.sections.work.title || fallback;
   const tex = useCanvasTexture(drawShopPoster(title, items, C.teal), 900, 620, [title, JSON.stringify(items), C.teal]);
   const { z, y, height } = WINDOW;
   return (
@@ -231,7 +234,8 @@ function Licences({ room }: { room: RoomProps }) {
 // ── Clock and wall calendar (Career) ───────────────────────────────────────
 function ClockAndCalendar({ room }: { room: RoomProps }) {
   const { C, profile } = useRoom();
-  const title = profile.studio.sections.career.title || "Career";
+  const fallback = useT().canvas.career;
+  const title = profile.studio.sections.career.title || fallback;
   const items = profile.experience.map(({ period, role, org }) => ({ period, role, org }));
   const calendar = useCanvasTexture(drawCalendar(title, items, C.teal), 900, 700, [title, JSON.stringify(items), C.teal]);
   const face = useCanvasTexture(drawClockFace(), 512, 512, []);
@@ -314,7 +318,8 @@ function StockBox({ label, rest, out, active }: { label: string; rest: THREE.Vec
 function Stockroom({ room }: { room: RoomProps }) {
   const { C, profile } = useRoom();
   const active = room.active === "archive";
-  const sign = useCanvasTexture(drawLabel("Stockroom"), 512, 96, []);
+  const label = useT().canvas.stockroom;
+  const sign = useCanvasTexture(drawLabel(label), 512, 96, [label]);
   const labels = [0, 1, 2, 3].map((i) => profile.studio.drawers[i] ?? "");
   // Two boxes on the floor, one on each of those, fanned out when open.
   const spots = useMemo(
@@ -442,7 +447,7 @@ function DisplayTable() {
 
 export function Shop(props: RoomProps) {
   const { profile } = useRoom();
-  const { twin } = useStudioData();
+  const { twin, layout } = useStudioData();
   return (
     <group>
       <Lights night={props.night} calm={props.calm} lamp={[0.4, 2.8, -1.4]} />
@@ -455,6 +460,7 @@ export function Shop(props: RoomProps) {
       <OwnersCounter room={props} />
       {profile.phone && <Telephone room={props} position={[COUNTER.x, TOP, -1.15]} rotation={[0, Math.PI / 2 - 0.35, 0]} />}
       {twin !== "off" && <Hologram room={props} at={[0.7, -1.3]} />}
+      {twin !== "off" && <Robot room={props} path={layout.robot} />}
       <DisplayTable />
       <Plant position={[-3.4, 0, 3.55]} />
     </group>
