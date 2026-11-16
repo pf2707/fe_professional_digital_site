@@ -12,8 +12,12 @@ const RESERVED = new Set([
   "account", "settings", "dashboard", "about", "contact", "pricing", "terms",
   "privacy", "help", "support", "blog", "docs", "static", "assets", "uploads",
   "images", "new", "edit", "preview", "app", "www", "mail", "home", "index",
-  "robots", "sitemap", "favicon", "icon",
+  "robots", "sitemap", "favicon", "icon", "thaitran",
 ]);
+
+// The site owner's own CV (data/profile.json), built in rather than published:
+// /scene/thaitran is the link to hand an interviewer.
+export const OWNER_SLUG = "thaitran";
 
 // Where a CV lives.
 export const cvPath = (slug: string) => `/scene/${slug}`;

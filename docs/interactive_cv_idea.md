@@ -13,3 +13,8 @@ This certificate above verifies that Thai Tran successfully completed the course
 
 + Completion Udemy Course - AI Coder: Complete Claude Code & Coding Agents Course
 This certificate verifies that Thai Tran successfully completed the course AI Coder: Complete Claude Code & Coding Agents Course on 06/27/2026 as taught by instructor Ligency, Ed Donner on Udemy. The certificate indicates the entire course was completed. With this certificate, I'm confident that I become a Agentic Engineering and master with various AI Coding Agents such as Claude Code, Cursor, Copilot, Codex and I can build Skill, MCP, Sub Agent, Agent Teams to fasten building product time with high quality code.
+
+- Add these AI skills and frameworks
+
++ Claude Code, Codex, LangChain, LangGraph, CrewAI, OpenAI Agent SDK
++ MCP, Skill, Agent Orchestration

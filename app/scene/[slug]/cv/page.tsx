@@ -6,13 +6,17 @@ import { ReviewBar } from "@/components/owner/ReviewBar";
 import { StudioDataProvider } from "@/components/studio/StudioData";
 import { cvView } from "@/lib/cv-page";
 import { getDict } from "@/lib/i18n/server";
-import { twinEnabled } from "@/lib/profile";
-import { cvPath } from "@/lib/slug";
+import { sampleProfile, twinEnabled } from "@/lib/profile";
+import { cvPath, OWNER_SLUG } from "@/lib/slug";
 
 // localhost:3000/scene/<slug>/cv — the text version of one person's CV.
 
 export async function generateMetadata(props: PageProps<"/scene/[slug]/cv">): Promise<Metadata> {
   const { slug } = await props.params;
+  if (slug === OWNER_SLUG) {
+    const p = sampleProfile;
+    return { title: `${p.name} — CV`, description: `${p.title}. ${p.tagline}` };
+  }
   const [view, t] = await Promise.all([cvView(slug), getDict()]);
   if (view.kind !== "live") return { title: t.scene.notPublishedTitle, robots: { index: false } };
   const p = view.cv.profile;
@@ -25,6 +29,12 @@ export async function generateMetadata(props: PageProps<"/scene/[slug]/cv">): Pr
 
 export default async function CvTextPage(props: PageProps<"/scene/[slug]/cv">) {
   const { slug } = await props.params;
+  if (slug === OWNER_SLUG)
+    return (
+      <StudioDataProvider profile={sampleProfile} cvHref={`${cvPath(slug)}/cv`}>
+        <TextCv profile={sampleProfile} studioHref={cvPath(slug)} />
+      </StudioDataProvider>
+    );
   const view = await cvView(slug);
   if (view.kind === "missing") notFound();
   if (view.kind === "pending") return <PendingCv />;
